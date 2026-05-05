@@ -10,13 +10,4 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\HomeServicesPlatform.Application\HomeServicesPlatform.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Middleware\" />
-    <Folder Include="Extensions\" />
-  </ItemGroup>
-
 </Project>
