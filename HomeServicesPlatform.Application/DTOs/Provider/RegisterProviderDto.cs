@@ -10,6 +10,6 @@ namespace HomeServicesPlatform.Application.DTOs.Provider
         public int Experience { get; set; } 
         
         // list of services and base price`
-        public List<ProviderServiceRequestDto> Services { get; set; }
+        public List<ProviderServiceDto> Services { get; set; } = new List<ProviderServiceDto>();
     }
 }
