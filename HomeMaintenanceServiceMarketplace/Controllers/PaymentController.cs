@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace HomeMaintenanceServiceMarketplace.Controllers
+﻿namespace HomeServicesPlatform.API.Controllers
 {
-    public class PaymentController : Controller
+    public class PaymentController 
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        
     }
 }

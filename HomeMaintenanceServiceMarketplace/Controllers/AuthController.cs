@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace HomeMaintenanceServiceMarketplace.Controllers
+﻿namespace HomeServicesPlatform.API.Controllers
 {
-    public class AuthController : Controller
+    public class AuthController 
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+      
     }
 }

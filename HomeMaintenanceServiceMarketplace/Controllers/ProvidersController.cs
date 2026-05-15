@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace HomeMaintenanceServiceMarketplace.Controllers
+﻿
+namespace HomeServicesPlatform.API.Controllers
 {
-    public class ProvidersController : Controller
-    {
-        public IActionResult Index()
-        {
-            return View();
-        }
+    public class ProvidersController
+    { 
     }
 }

@@ -20,6 +20,8 @@ namespace HomeMaintenanceServiceMarketplace.Models
 
         // Navigation
         public ApplicationUser User { get; set; } = null!;
-    
+
+        // Navigation: This allows us to see all services offered by this provider
+        public ICollection<ProviderService> ProviderServices { get; set; } = new List<ProviderService>();
     }
 }

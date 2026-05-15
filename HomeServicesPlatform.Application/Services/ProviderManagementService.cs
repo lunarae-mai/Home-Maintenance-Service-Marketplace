@@ -3,9 +3,8 @@ using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace HomeServicesPlatform.Application.Services
 {
@@ -90,10 +89,34 @@ namespace HomeServicesPlatform.Application.Services
             }
         }
 
-        public Task<RegisterProviderDto> GetProviderProfileAsync(string userId)
+        public async Task<RegisterProviderDto> GetProviderProfileAsync(string userId)
         {
-            // This will be implemented when needed for viewing the profile
-            throw new NotImplementedException();
+            try
+            {
+                // Fetch profile and map its services
+                var profile = await _context.ProviderProfiles
+                    .Where(p => p.UserId == userId)
+                    .Select(p => new RegisterProviderDto
+                    {
+                        Bio = p.Bio,
+                        Experience = p.Experience,
+                        // Select inner services and map to DTOs
+                        Services = p.ProviderServices.Select(ps => new ProviderServiceDto
+                        {
+                            ServiceId = ps.ServiceId,
+                            BasePrice = ps.BasePrice
+                        }).ToList()
+                    })
+                    .FirstOrDefaultAsync(); 
+
+                return profile;
+            }
+            catch (Exception ex)
+            {
+                // Log technical details if DB fails
+                _logger.LogError(ex, "Error fetching profile for user {UserId}", userId);
+                return null;
+            }
         }
 
 
