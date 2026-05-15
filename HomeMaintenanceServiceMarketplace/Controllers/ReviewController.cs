@@ -1,12 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace HomeMaintenanceServiceMarketplace.Controllers
+﻿
+namespace HomeServicesPlatform.API.Controllers
 {
-    public class ReviewController : Controller
+    public class ReviewController 
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+       
     }
 }

@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
-namespace HomeMaintenanceServiceMarketplace.Controllers
+﻿namespace HomeServicesPlatform.API.Controllers
 {
-    public class BookingController : Controller
+    public class BookingController 
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+       
     }
 }
