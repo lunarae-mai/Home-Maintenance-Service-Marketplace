@@ -1,4 +1,4 @@
-﻿using HomeMaintenanceServiceMarketplace.Models;
+﻿using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
