@@ -1,8 +1,8 @@
 ﻿using HomeServicesPlatform.Domain.Enums;
-using HomeServicesPlatform.Domain.Entities;
+using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Domain.Common;
 
-namespace HomeMaintenanceServiceMarketplace.Models
+namespace HomeServicesPlatform.Domain.Models
 {
     public class ProviderProfile : BaseEntity
     {
@@ -16,7 +16,7 @@ namespace HomeMaintenanceServiceMarketplace.Models
 
 
         // FK
-        public string UserId { get; set; } = string.Empty;
+        public String UserId { get; set; } = string.Empty;
 
         // Navigation
         public ApplicationUser User { get; set; } = null!;

@@ -1,6 +1,6 @@
-﻿using HomeMaintenanceServiceMarketplace.Models;
+﻿using HomeServicesPlatform.Domain.Models;
 using Microsoft.EntityFrameworkCore;
-using HomeServicesPlatform.Domain.Entities;
+using HomeServicesPlatform.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
