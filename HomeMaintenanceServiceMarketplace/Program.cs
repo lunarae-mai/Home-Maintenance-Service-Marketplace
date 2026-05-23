@@ -40,6 +40,11 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddControllers();
+
+// Add Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Register Repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -57,7 +62,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => "Home Maintenance API is Running!");
+app.MapControllers();
 
+// Use Swagger
+app.UseSwagger();
+app.UseSwaggerUI();
 
 using (var scope = app.Services.CreateScope())
 {
