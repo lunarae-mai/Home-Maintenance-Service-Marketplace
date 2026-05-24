@@ -1,6 +1,7 @@
 ﻿using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.Services;
 using HomeServicesPlatform.Application.Services.Auth;
+using HomeServicesPlatform.Application.Services.ProfileManagement;
 using HomeServicesPlatform.Infrastructure.Data;
 using HomeServicesPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,8 +13,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<HomeServicesPlatform.Infrastructure.Data.AppDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+// Services and their interfaces
 builder.Services.AddScoped<HomeServicesPlatform.Application.Interfaces.IAppDbContext, HomeServicesPlatform.Infrastructure.Data.AppDbContext>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProfileManagementService, ProfileManagementService>();
 
 // Add Authentication with JWT 
 builder.Services.AddAuthentication(options =>
