@@ -3,7 +3,8 @@ using HomeServicesPlatform.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register Provider Management Service 
+// Registering the Provider Management Service for Dependency Injection
+// لو لقيت حد بيطلب الانترفيس ده -> ابعتله نسخه من الكلاس ده
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
 
 var app = builder.Build();
