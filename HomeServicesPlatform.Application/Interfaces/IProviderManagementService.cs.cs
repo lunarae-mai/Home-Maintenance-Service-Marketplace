@@ -16,5 +16,5 @@ namespace HomeServicesPlatform.Application.Interfaces
 
         // Method --> Get provider profile info. 
         Task<RegisterProviderDto> GetProviderProfileAsync(string userId);
-    }
+ Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);    }
 }
