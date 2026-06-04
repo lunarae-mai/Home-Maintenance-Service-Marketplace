@@ -18,6 +18,9 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectio
 builder.Services.AddScoped<HomeServicesPlatform.Application.Interfaces.IAppDbContext, HomeServicesPlatform.Infrastructure.Data.AppDbContext>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProfileManagementService, ProfileManagementService>();
+//mai - slot generator
+builder.Services.AddScoped<ISlotGeneratorService, SlotGeneratorService>();
+
 
 // Add Authentication with JWT
 builder.Services.AddAuthentication(options =>
