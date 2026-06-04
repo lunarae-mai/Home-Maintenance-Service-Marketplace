@@ -20,6 +20,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProfileManagementService, ProfileManagementService>();
 //mai - slot generator
 builder.Services.AddScoped<ISlotGeneratorService, SlotGeneratorService>();
+builder.Services.AddHostedService<SlotGenerationJob>(); //sprint 2
+
 
 
 // Add Authentication with JWT
