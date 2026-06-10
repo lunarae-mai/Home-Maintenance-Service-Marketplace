@@ -58,8 +58,6 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 // Register Provider Management Service
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
 
-builder.Services.AddScoped<IServiceService, ServiceService>();
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
