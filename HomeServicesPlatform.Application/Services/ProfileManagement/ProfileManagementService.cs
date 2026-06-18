@@ -35,6 +35,7 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
             };
         }
 
+
         //Function to edit/update the user's profile
         public async Task<bool> UpdateProfileAsync(string userId, UpdateProfileDto dto)
         {

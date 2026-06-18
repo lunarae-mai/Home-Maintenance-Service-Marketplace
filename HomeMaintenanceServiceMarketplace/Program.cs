@@ -1,6 +1,7 @@
 ﻿using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.Services;
 using HomeServicesPlatform.Application.Services.Auth;
+using HomeServicesPlatform.Application.Services.CurrentUser;
 using HomeServicesPlatform.Application.Services.ProfileManagement;
 using HomeServicesPlatform.Infrastructure.Data;
 using HomeServicesPlatform.Infrastructure.Repositories;
@@ -57,6 +58,12 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 
 // Register Provider Management Service
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
+
+// Register the HttpContextAccessor to enable accessing HTTP context outside controllers
+builder.Services.AddHttpContextAccessor();
+
+// Register the current user service with a scoped lifetime
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
 

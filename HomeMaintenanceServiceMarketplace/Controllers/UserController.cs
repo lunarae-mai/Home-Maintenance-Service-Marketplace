@@ -8,20 +8,26 @@ namespace HomeServicesPlatform.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IProfileManagementService _profileManagementService;
-
-        public UserController(IProfileManagementService profileManagementService)
+        private readonly ICurrentUserService _currentUserService;
+       
+        public UserController(IProfileManagementService profileManagementService , ICurrentUserService currentUserService)
         {
             _profileManagementService = profileManagementService;
+            _currentUserService = currentUserService;
         }
 
         // GET PROFILE
         [HttpGet("me")]
         public async Task<IActionResult> GetMyProfile()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             var user = await _profileManagementService.GetProfileAsync(userId);
 
@@ -35,7 +41,10 @@ namespace HomeServicesPlatform.API.Controllers
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
 
