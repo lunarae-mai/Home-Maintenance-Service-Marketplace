@@ -1,6 +1,7 @@
 ﻿using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -11,18 +12,23 @@ namespace HomeServicesPlatform.API.Controllers
     public class ProvidersController : ControllerBase
     {
         private readonly IProviderManagementService _providerService;
+        private readonly ICurrentUserService _currentUserService;
 
-        public ProvidersController(IProviderManagementService providerService)
+        public ProvidersController(IProviderManagementService providerService, ICurrentUserService currentUserService)
         {
             _providerService = providerService;
+            _currentUserService = currentUserService;
         }
 
-       
+
         [HttpPost("register")]
+        [Authorize]
         public async Task<IActionResult> Register([FromBody] RegisterProviderDto dto)
         {
-            // Extract the UserId from their secure Token
-            string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             // Calling the Service logic by using the intrface 
             var result = await _providerService.RegisterProviderAsync(dto, userId);
@@ -38,10 +44,14 @@ namespace HomeServicesPlatform.API.Controllers
 
         
         [HttpGet("profile")]
+        [Authorize]
         public async Task<IActionResult> GetProfile()
         {
 
-            string userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!;
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             // Fetch the data from Service
             var profile = await _providerService.GetProviderProfileAsync(userId);
@@ -56,6 +66,7 @@ namespace HomeServicesPlatform.API.Controllers
 
         
         [HttpPut("status")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateStatus(int providerId, ProviderStatus status)
         { 
             var result = await _providerService.UpdateProviderStatusAsync(providerId, status);
