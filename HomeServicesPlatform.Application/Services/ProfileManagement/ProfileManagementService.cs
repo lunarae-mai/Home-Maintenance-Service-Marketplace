@@ -56,9 +56,9 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
 
 
         //Function to change user passwords
-        public async Task<IdentityResultStatusDto> ChangePasswordAsync(string userId, ChangePasswordDto dto)
+        public async Task<PasswordChangeResultDto> ChangePasswordAsync(string userId, ChangePasswordDto dto)
         {
-            var response = new IdentityResultStatusDto();
+            var response = new PasswordChangeResultDto();
 
             // Fetch the current user instance from Identity store
             var user = await _userManager.FindByIdAsync(userId);
