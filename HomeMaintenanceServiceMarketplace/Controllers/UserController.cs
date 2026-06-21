@@ -37,6 +37,7 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(user);
         }
 
+        
         // UPDATE PROFILE
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
@@ -53,5 +54,26 @@ namespace HomeServicesPlatform.API.Controllers
 
             return Ok("Profile updated successfully");
         }
+
+        
+        // CHANGE PASSWORD
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _profileManagementService.ChangePasswordAsync(userId, dto);
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { errors = result.Errors });
+            }
+
+            return Ok(new { message = "Password updated successfully." });
+        }
+
     }
 }

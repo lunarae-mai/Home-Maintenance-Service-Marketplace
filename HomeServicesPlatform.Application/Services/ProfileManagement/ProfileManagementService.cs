@@ -1,6 +1,7 @@
-﻿using HomeServicesPlatform.Application.Interfaces;
-using HomeServicesPlatform.Application.DTOs.UserProfile;
+﻿using HomeServicesPlatform.Application.DTOs.UserProfile;
+using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,12 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
     public class ProfileManagementService : IProfileManagementService
     {
         private readonly IAppDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ProfileManagementService(IAppDbContext context)
+        public ProfileManagementService(IAppDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // Function to view the user's profile
@@ -50,5 +53,35 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
 
             return await _context.SaveChangesAsync() > 0;
         }
+
+
+        //Function to change user passwords
+        public async Task<IdentityResultStatusDto> ChangePasswordAsync(string userId, ChangePasswordDto dto)
+        {
+            var response = new IdentityResultStatusDto();
+
+            // Fetch the current user instance from Identity store
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                response.Errors.Add("User record not found within the system context.");
+                return response;
+            }
+
+            // Perform secure password modification via built-in UserManager logic
+            var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+
+            if (result.Succeeded)
+            {
+                response.Succeeded = true;
+            }
+            else
+            {
+                response.Errors.AddRange(result.Errors.Select(e => e.Description));
+            }
+
+            return response;
+        }
+
     }
 }
