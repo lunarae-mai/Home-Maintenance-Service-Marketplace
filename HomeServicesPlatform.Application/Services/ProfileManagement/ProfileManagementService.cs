@@ -45,6 +45,14 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
 
             if (user == null) return false;
 
+            // Check if email is already used by another user
+            var emailExists = await _context.ApplicationUsers
+                .AnyAsync(x => x.Email.ToLower() == dto.Email.ToLower()
+                            && x.Id != userId);
+
+            if (emailExists)
+                throw new Exception("Email is already in use.");
+
             user.Name = dto.Name;
             user.Phone = dto.Phone;
             user.Email = dto.Email;

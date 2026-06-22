@@ -47,12 +47,19 @@ namespace HomeServicesPlatform.API.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+            try
+            {
+                var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
 
-            if (!result)
-                return BadRequest("Update failed");
+                if (!result)
+                    return BadRequest("Update failed");
 
-            return Ok("Profile updated successfully");
+                return Ok("Profile updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
 
