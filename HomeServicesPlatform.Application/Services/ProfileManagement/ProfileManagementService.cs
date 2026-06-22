@@ -83,5 +83,28 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
             await _context.SaveChangesAsync();
         }
 
+
+        //Function for Admin to view all users and optionally filter by role
+        public async Task<IEnumerable<UserProfileDto>> GetAllUsersAsync(string? role = null)
+        {
+            var query = _context.ApplicationUsers.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                query = query.Where(x => x.Role == role);
+            }
+
+            return await query
+                .Select(user => new UserProfileDto
+                {
+                    Id = user.Id,
+                    Name = user.Name,
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    Role = user.Role
+                })
+                .ToListAsync();
+        }
+
     }
 }

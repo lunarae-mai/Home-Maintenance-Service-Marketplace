@@ -83,5 +83,17 @@ namespace HomeServicesPlatform.API.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+
+        // GET ALL USERS 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers([FromQuery] string? role)
+        {
+            var users = await _profileManagementService.GetAllUsersAsync(role);
+           
+            return Ok(users);
+        }
+
     }
 }
