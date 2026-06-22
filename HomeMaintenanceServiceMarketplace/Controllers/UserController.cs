@@ -40,7 +40,7 @@ namespace HomeServicesPlatform.API.Controllers
         
         // UPDATE PROFILE
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
             var userId = _currentUserService.UserId;
 
