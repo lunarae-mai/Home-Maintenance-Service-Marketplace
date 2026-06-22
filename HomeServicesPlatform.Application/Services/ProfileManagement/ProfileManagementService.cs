@@ -12,12 +12,10 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
     public class ProfileManagementService : IProfileManagementService
     {
         private readonly IAppDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
 
-        public ProfileManagementService(IAppDbContext context, UserManager<ApplicationUser> userManager)
+        public ProfileManagementService(IAppDbContext context)
         {
             _context = context;
-            _userManager = userManager;
         }
 
         // Function to view the user's profile
@@ -56,31 +54,25 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
 
 
         //Function to change user passwords
-        public async Task<PasswordChangeResultDto> ChangePasswordAsync(string userId, ChangePasswordDto dto)
+        public async Task ChangePasswordAsync(string userId, ChangePasswordDto dto)
         {
-            var response = new PasswordChangeResultDto();
+            var user = await _context.ApplicationUsers
+                .FirstOrDefaultAsync(x => x.Id == userId);
 
-            // Fetch the current user instance from Identity store
-            var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-            {
-                response.Errors.Add("User record not found within the system context.");
-                return response;
-            }
+                throw new Exception("User not found.");
 
-            // Perform secure password modification via built-in UserManager logic
-            var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+            var hasher = new PasswordHasher<ApplicationUser>();
 
-            if (result.Succeeded)
-            {
-                response.Succeeded = true;
-            }
-            else
-            {
-                response.Errors.AddRange(result.Errors.Select(e => e.Description));
-            }
+            // Check the current password
+            var verificationResult = hasher.VerifyHashedPassword(user, user.PasswordHash, dto.CurrentPassword);
 
-            return response;
+            if (verificationResult == PasswordVerificationResult.Failed)
+                throw new Exception("The current password you entered is incorrect.");
+
+            user.PasswordHash = hasher.HashPassword(user, dto.NewPassword);
+
+            await _context.SaveChangesAsync();
         }
 
     }

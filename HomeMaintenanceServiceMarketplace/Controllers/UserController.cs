@@ -55,7 +55,7 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok("Profile updated successfully");
         }
 
-        
+
         // CHANGE PASSWORD
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
@@ -65,15 +65,16 @@ namespace HomeServicesPlatform.API.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            var result = await _profileManagementService.ChangePasswordAsync(userId, dto);
-
-            if (!result.Succeeded)
+            try
             {
-                return BadRequest(new { errors = result.Errors });
+                await _profileManagementService.ChangePasswordAsync(userId, dto);
+
+                return Ok(new { message = "Password updated successfully." });
             }
-
-            return Ok(new { message = "Password updated successfully." });
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
-
     }
 }
