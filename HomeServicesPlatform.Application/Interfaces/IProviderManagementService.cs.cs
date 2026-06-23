@@ -3,6 +3,7 @@ using HomeServicesPlatform.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using HomeServicesPlatform.Application.DTOs.Common;
 
 namespace HomeServicesPlatform.Application.Interfaces
 {
@@ -16,5 +17,5 @@ namespace HomeServicesPlatform.Application.Interfaces
 
         // Method --> Get provider profile info. 
         Task<RegisterProviderDto> GetProviderProfileAsync(string userId);
-    }
+ Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);    }
 }

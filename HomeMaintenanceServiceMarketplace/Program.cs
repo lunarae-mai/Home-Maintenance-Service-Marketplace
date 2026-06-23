@@ -46,6 +46,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
+// Register Payment Service
+builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.Services.PaymentService>();
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
@@ -59,11 +61,14 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 // Register Provider Management Service
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
 
+
 // Register the HttpContextAccessor to enable accessing HTTP context outside controllers
 builder.Services.AddHttpContextAccessor();
 
 // Register the current user service with a scoped lifetime
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+builder.Services.AddScoped<IServiceService, ServiceService>();
 
 var app = builder.Build();
 

@@ -5,6 +5,8 @@ namespace HomeServicesPlatform.Domain.Models
     public class Booking : BaseEntity
     {
         // Use BookingStatus Enum here (Pending, Confirmed, Completed, etc.)
+        // في Booking.cs
+        // 0: Pending, 1: Confirmed, 2: Completed, 3: Paid
         public int Status { get; set; }
         public string Notes { get; set; } = string.Empty;
 

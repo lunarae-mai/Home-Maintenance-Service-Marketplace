@@ -79,6 +79,17 @@ namespace HomeServicesPlatform.API.Controllers
             return BadRequest(new { message = "Failed to update status. Check if Provider ID is correct." });
 
         }
+        // GET api/providers/search?serviceId=2
+    // GET api/providers/search?serviceId=2&minRating=4&priceType=Fixed&page=1&pageSize=10
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
+        {
+            if (filter.ServiceId <= 0)
+                return BadRequest(new { message = "A valid serviceId is required." });
+
+            var result = await _providerService.SearchProvidersAsync(filter);
+            return Ok(result);
+        }
 
     } 
 }
