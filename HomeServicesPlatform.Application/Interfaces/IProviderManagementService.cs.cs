@@ -3,6 +3,7 @@ using HomeServicesPlatform.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using HomeServicesPlatform.Application.DTOs.Common;
 
 namespace HomeServicesPlatform.Application.Interfaces
 {

@@ -4,6 +4,7 @@ using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
+using HomeServicesPlatform.Application.DTOs.Common;
 
 
 namespace HomeServicesPlatform.Application.Services
