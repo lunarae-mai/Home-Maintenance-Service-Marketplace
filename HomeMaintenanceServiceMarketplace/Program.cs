@@ -45,6 +45,8 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
+// Register Payment Service
+builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.Services.PaymentService>();
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
