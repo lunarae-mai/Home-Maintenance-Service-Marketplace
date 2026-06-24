@@ -9,5 +9,8 @@ namespace HomeServicesPlatform.Application.Interfaces
     {
         Task<UserProfileDto> GetProfileAsync(string userId);
         Task<bool> UpdateProfileAsync(string userId, UpdateProfileDto dto);
+        Task ChangePasswordAsync(string userId, ChangePasswordDto dto);
+        Task<IEnumerable<UserProfileDto>> GetAllUsersAsync(string? role = null);
+
     }
 }

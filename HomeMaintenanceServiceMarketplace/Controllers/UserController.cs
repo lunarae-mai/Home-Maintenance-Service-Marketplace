@@ -8,20 +8,26 @@ namespace HomeServicesPlatform.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly IProfileManagementService _profileManagementService;
-
-        public UserController(IProfileManagementService profileManagementService)
+        private readonly ICurrentUserService _currentUserService;
+       
+        public UserController(IProfileManagementService profileManagementService , ICurrentUserService currentUserService)
         {
             _profileManagementService = profileManagementService;
+            _currentUserService = currentUserService;
         }
 
         // GET PROFILE
         [HttpGet("me")]
         public async Task<IActionResult> GetMyProfile()
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             var user = await _profileManagementService.GetProfileAsync(userId);
 
@@ -31,18 +37,63 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(user);
         }
 
+        
         // UPDATE PROFILE
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = _currentUserService.UserId;
 
-            var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
-            if (!result)
-                return BadRequest("Update failed");
+            try
+            {
+                var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
 
-            return Ok("Profile updated successfully");
+                if (!result)
+                    return BadRequest("Update failed");
+
+                return Ok("Profile updated successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
+
+
+        // CHANGE PASSWORD
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            try
+            {
+                await _profileManagementService.ChangePasswordAsync(userId, dto);
+
+                return Ok(new { message = "Password updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+
+        // GET ALL USERS 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsers([FromQuery] string? role)
+        {
+            var users = await _profileManagementService.GetAllUsersAsync(role);
+           
+            return Ok(users);
+        }
+
     }
 }
