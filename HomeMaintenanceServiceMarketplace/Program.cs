@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using HomeServicesPlatform.Application.DTOs.Booking;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +57,9 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IProviderRepository, ProviderRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 // Register Provider Management Service 
+
+//booking
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 var app = builder.Build();
 

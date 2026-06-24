@@ -2,6 +2,11 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using HomeServicesPlatform.Application.DTOs.Booking;
+using HomeServicesPlatform.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using HomeServicesPlatform.Domain.Enums; 
 
 [ApiController]
 [Route("api/[controller]")]   // → api/booking
@@ -26,7 +31,7 @@ public class BookingController : ControllerBase
         try
         {
             var result = await _bookingService.CreateBookingAsync(customerId, dto);
-            return CreatedAtAction(nameof(GetMyBookings), new { }, result);
+            return Ok(result);
         }
         catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
@@ -57,5 +62,49 @@ public class BookingController : ControllerBase
         }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
+    [HttpGet("customer/{customerId}/history")]
+    public async Task<IActionResult> GetBookingHistory(string customerId)
+    {
+        var active =
+            await _bookingService.GetCustomerActiveBookingsAsync(customerId);
+
+        var past =
+            await _bookingService.GetCustomerPastBookingsAsync(customerId);
+
+        return Ok(new
+        {
+            ActiveBookings = active,
+            PastBookings = past
+        });
+    }
+
+    [HttpGet("provider/{providerId}/incoming-requests")]
+    public async Task<IActionResult> GetIncomingRequests(int providerId)
+    {
+        var requests =
+            await _bookingService.GetIncomingRequestsAsync(providerId);
+
+        return Ok(requests);
+    }
+
+    //[HttpPut("{bookingId}/status")]
+    //public async Task<IActionResult> UpdateStatus(
+    //int bookingId,
+    //BookingStatus status)
+    //{
+    //    await _bookingService
+    //        .UpdateBookingStatusAsync(bookingId, status);
+
+    //    return Ok("Status updated successfully");
+    //}
+    [HttpGet("provider/{providerId}/today-schedule")]
+    public async Task<IActionResult> GetTodaySchedule(int providerId)
+    {
+        var schedule =
+            await _bookingService.GetTodayScheduleAsync(providerId);
+
+        return Ok(schedule);
     }
 }

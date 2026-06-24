@@ -1,11 +1,12 @@
 ﻿using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Domain.Common;
+using HomeServicesPlatform.Domain.Enums;
 namespace HomeServicesPlatform.Domain.Models
 {
     public class Booking : BaseEntity
     {
         // Use BookingStatus Enum here (Pending, Confirmed, Completed, etc.)
-        public int Status { get; set; }
+        public BookingStatus Status { get; set; }= BookingStatus.Pending;
         public string Notes { get; set; } = string.Empty;
 
         // Foreign Keys
