@@ -4,8 +4,9 @@ namespace HomeServicesPlatform.Domain.Enums
     {
         Pending = 0,
         Confirmed = 1,
-        InProgress = 2,
-        Completed = 3,
-        Cancelled = 4
+        InProgress = 2,  // Work has started
+        Completed = 3,   // Work is done, awaiting payment
+        Paid = 4,        // Payment completed, can review
+        Cancelled = 5
     }
 }

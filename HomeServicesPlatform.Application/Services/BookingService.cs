@@ -104,7 +104,8 @@ namespace HomeServicesPlatform.Application.Services
 
             // cant cancel once work has started
             if (booking.Status == BookingStatus.InProgress ||
-                booking.Status == BookingStatus.Completed)
+                booking.Status == BookingStatus.Completed ||
+                booking.Status == BookingStatus.Paid)
             {
                 throw new InvalidOperationException(
                     "Cancellation is only allowed before the booking is In Progress.");
@@ -241,6 +242,7 @@ namespace HomeServicesPlatform.Application.Services
 
             return bookings.Where(b =>
                 b.Status == BookingStatus.Completed ||
+                b.Status == BookingStatus.Paid ||
                 b.Status == BookingStatus.Cancelled);
         }
     }

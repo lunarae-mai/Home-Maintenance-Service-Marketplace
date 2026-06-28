@@ -6,13 +6,15 @@ using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using HomeServicesPlatform.Domain.Enums; 
+using HomeServicesPlatform.Domain.Enums;
 
-[ApiController]
-[Route("api/[controller]")]   
-[Authorize]                   
-public class BookingController : ControllerBase
+namespace HomeServicesPlatform.API.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class BookingController : ControllerBase
+    {
     private readonly IBookingService _bookingService;
 
     public BookingController(IBookingService bookingService)
@@ -114,6 +116,6 @@ public class BookingController : ControllerBase
             await _bookingService.GetTodayScheduleAsync(providerId);
 
         return Ok(schedule);
+        }
     }
-
 }
