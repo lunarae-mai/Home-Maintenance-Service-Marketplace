@@ -4,6 +4,8 @@ using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Domain.Enums;
 using HomeServicesPlatform.Infrastructure.Data; 
 using Microsoft.EntityFrameworkCore;
+using HomeServicesPlatform.Domain.Enums;
+
 
 namespace HomeServicesPlatform.Infrastructure.Services
 {
@@ -25,6 +27,7 @@ namespace HomeServicesPlatform.Infrastructure.Services
             // 2. Validate booking exists and is in Completed status (work is done)
             if (booking == null || booking.Status != BookingStatus.Completed)
                 return false;
+            
 
             // 3. Prevent duplicate payment
             var existingPayment = await _context.Payments.AnyAsync(p => p.BookingId == dto.BookingId);
