@@ -9,6 +9,7 @@ namespace HomeServicesPlatform.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProvidersController : ControllerBase
     {
         private readonly IProviderManagementService _providerService;
@@ -22,7 +23,7 @@ namespace HomeServicesPlatform.API.Controllers
 
 
         [HttpPost("register")]
-        [Authorize]
+        [Authorize(Roles = "Provider")]
         public async Task<IActionResult> Register([FromBody] RegisterProviderDto dto)
         {
             var userId = _currentUserService.UserId;
@@ -30,7 +31,6 @@ namespace HomeServicesPlatform.API.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Calling the Service logic by using the intrface 
             var result = await _providerService.RegisterProviderAsync(dto, userId);
 
             if (result)
@@ -44,7 +44,7 @@ namespace HomeServicesPlatform.API.Controllers
 
         
         [HttpGet("profile")]
-        [Authorize]
+        [Authorize(Roles = "Provider")]
         public async Task<IActionResult> GetProfile()
         {
 
@@ -79,8 +79,7 @@ namespace HomeServicesPlatform.API.Controllers
             return BadRequest(new { message = "Failed to update status. Check if Provider ID is correct." });
 
         }
-        // GET api/providers/search?serviceId=2
-    // GET api/providers/search?serviceId=2&minRating=4&priceType=Fixed&page=1&pageSize=10
+        
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {

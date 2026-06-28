@@ -1,9 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.DTOs.Payment;
+using Microsoft.AspNetCore.Authorization;
+
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
+
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
@@ -15,6 +19,7 @@ public class PaymentsController : ControllerBase
 
     // Endpoint for the Provider to manually update the PaymentStatus to Paid
     [HttpPost("verify-cash")]
+    [Authorize(Roles = "Provider")]
     public async Task<IActionResult> VerifyCashPayment([FromBody] CreatePaymentDto dto)
     {
         var result = await _paymentService.ProcessPaymentAsync(dto);
@@ -24,4 +29,5 @@ public class PaymentsController : ControllerBase
 
         return Ok(new { message = "Payment verified successfully. Status updated to Paid." });
     }
+
 }

@@ -22,6 +22,7 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(categories);
         }
 
+
         // GET api/service/categories/3/services — returns all services in that category
         [HttpGet("categories/{categoryId}/services")]
         public async Task<IActionResult> GetServicesByCategory(int categoryId)
@@ -29,6 +30,7 @@ namespace HomeServicesPlatform.API.Controllers
             var services = await _serviceService.GetServicesByCategoryAsync(categoryId);
             return Ok(services);
         }
+
 
         // GET api/service/5 — returns one specific service
         [HttpGet("{serviceId}")]
@@ -38,5 +40,6 @@ namespace HomeServicesPlatform.API.Controllers
             if (service == null) return NotFound();
             return Ok(service);
         }
+    
     }
 }
