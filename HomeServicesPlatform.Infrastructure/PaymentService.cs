@@ -3,6 +3,8 @@ using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Infrastructure.Data; 
 using Microsoft.EntityFrameworkCore;
+using HomeServicesPlatform.Domain.Enums;
+
 
 namespace HomeServicesPlatform.Infrastructure.Services
 {
@@ -22,8 +24,9 @@ namespace HomeServicesPlatform.Infrastructure.Services
             var booking = await _context.Bookings.FindAsync(dto.BookingId);
 
             // 2. Validate
-            if (booking == null || booking.Status != 2 )
+            if (booking == null || booking.Status != BookingStatus.InProgress)
                 return false;
+            
 
             // 3. Prevent duplicate payment
             var existingPayment = await _context.Payments.AnyAsync(p => p.BookingId == dto.BookingId);
@@ -45,7 +48,7 @@ namespace HomeServicesPlatform.Infrastructure.Services
             };
 
             // 6. Update booking status
-            booking.Status = 3 ;
+            booking.Status = BookingStatus.Completed;
 
             // 7. Save to database
             _context.Payments.Add(payment);
