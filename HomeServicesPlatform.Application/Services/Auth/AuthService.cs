@@ -30,8 +30,8 @@ namespace HomeServicesPlatform.Application.Services.Auth
         // ---------------- REGISTER ----------------
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
-            var users = await _context.ApplicationUsers.ToListAsync();
-            var existingUser = users.FirstOrDefault(x => x.Email == dto.Email);
+            var existingUser = await _context.ApplicationUsers
+                 .FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (existingUser != null)
                 throw new Exception("User already exists");
@@ -48,14 +48,20 @@ namespace HomeServicesPlatform.Application.Services.Auth
             var hasher = new PasswordHasher<ApplicationUser>();
             user.PasswordHash = hasher.HashPassword(user, dto.Password);
 
+            // Generate and assign refresh token 
+            var initialRefreshToken = GenerateRefreshToken();
+            user.RefreshToken = initialRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
             _context.ApplicationUsers.Add(user);
             await _context.SaveChangesAsync();
 
-            var token = GenerateJwtToken(user);
+            var Token = GenerateJwtToken(user);
 
             return new AuthResponseDto
             {
-                Token = token,
+                AccessToken = Token,
+                RefreshToken = user.RefreshToken,
                 Email = user.Email,
                 Role = user.Role
             };
@@ -64,9 +70,8 @@ namespace HomeServicesPlatform.Application.Services.Auth
         // ---------------- LOGIN ----------------
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var users = await _context.ApplicationUsers.ToListAsync();
-
-            var user = users.FirstOrDefault(x => x.Email == dto.Email);
+            var user = await _context.ApplicationUsers
+                .FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (user == null)
                 throw new Exception("Invalid email or password");
@@ -82,15 +87,65 @@ namespace HomeServicesPlatform.Application.Services.Auth
             if (result == PasswordVerificationResult.Failed)
                 throw new Exception("Invalid email or password");
 
-            var token = GenerateJwtToken(user);
+            // Generate and assign refresh token 
+            var newRefreshToken = GenerateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7); 
+
+            await _context.SaveChangesAsync();
+
+            var Token = GenerateJwtToken(user);
 
             return new AuthResponseDto
             {
-                Token = token,
+                AccessToken = Token,
+                RefreshToken = user.RefreshToken, 
                 Email = user.Email,
                 Role = user.Role
             };
         }
+
+
+        // ---------------- REFRESH TOKEN LOGIC ----------------
+        public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.RefreshToken))
+                throw new Exception("Invalid client request");
+
+            // 1. Get the user from database who owns this refresh token
+            var user = await _context.ApplicationUsers
+                .FirstOrDefaultAsync(x => x.RefreshToken == dto.RefreshToken);
+
+            // 2. Validate if user exists
+            if (user == null)
+                throw new Exception("Invalid refresh token");
+
+            // 3. Validate if the refresh token has expired
+            if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                throw new Exception("Refresh token has expired, please login again");
+
+            // 4. Everything is valid! Generate brand new tokens
+            var newAccessToken = GenerateJwtToken(user);
+            var newRefreshToken = GenerateRefreshToken();
+
+            // 5. Update the database with the new refresh token and extend its life
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _context.SaveChangesAsync();
+
+            // 6. Return the fresh package to the frontend
+            return new AuthResponseDto
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = user.RefreshToken,
+                Email = user.Email,
+                Role = user.Role
+            };
+        }
+
+
+
 
         // ---------------- JWT GENERATION ----------------
         private string GenerateJwtToken(ApplicationUser user)
@@ -119,5 +174,17 @@ namespace HomeServicesPlatform.Application.Services.Auth
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
+        // ---------------- REFRESH TOKEN GENERATION ----------------
+        private string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+            using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
+
+        
     }
 }
