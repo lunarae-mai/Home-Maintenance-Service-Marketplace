@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using HomeServicesPlatform.Domain.Enums; 
 
 [ApiController]
-[Route("api/[controller]")]   // → api/booking
-[Authorize]                   // all endpoints require a valid JWT
+[Route("api/[controller]")]   
+[Authorize]                   
 public class BookingController : ControllerBase
 {
     private readonly IBookingService _bookingService;
@@ -37,8 +37,9 @@ public class BookingController : ControllerBase
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
+
     [HttpPut("{id}/confirm")]
-    [Authorize(Roles = "Provider")]   // only providers can confirm
+    [Authorize(Roles = "Provider")]   
     public async Task<IActionResult> ConfirmBooking(int id)
     {
         try
@@ -49,10 +50,10 @@ public class BookingController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
-    // StartBooking and CompleteBooking follow the exact same pattern
+
 
     [HttpPut("{id}/cancel")]
-    [Authorize(Roles = "Customer,Provider")]  // either party can cancel
+    [Authorize(Roles = "Customer,Provider")]  
     public async Task<IActionResult> CancelBooking(int id)
     {
         try
@@ -64,7 +65,9 @@ public class BookingController : ControllerBase
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
+
     [HttpGet("customer/{customerId}/history")]
+    [Authorize(Roles = "Customer")]
     public async Task<IActionResult> GetBookingHistory(string customerId)
     {
         var active =
@@ -80,7 +83,9 @@ public class BookingController : ControllerBase
         });
     }
 
+
     [HttpGet("provider/{providerId}/incoming-requests")]
+    [Authorize(Roles = "Provider")]
     public async Task<IActionResult> GetIncomingRequests(int providerId)
     {
         var requests =
@@ -99,7 +104,10 @@ public class BookingController : ControllerBase
 
     //    return Ok("Status updated successfully");
     //}
+
+
     [HttpGet("provider/{providerId}/today-schedule")]
+    [Authorize(Roles = "Provider")]
     public async Task<IActionResult> GetTodaySchedule(int providerId)
     {
         var schedule =
@@ -107,4 +115,5 @@ public class BookingController : ControllerBase
 
         return Ok(schedule);
     }
+
 }
