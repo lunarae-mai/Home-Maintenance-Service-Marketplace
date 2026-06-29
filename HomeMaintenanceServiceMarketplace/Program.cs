@@ -63,6 +63,9 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 // Register Provider Management Service
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
 
+// Register Availability Service- mai
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+
 
 // Register the HttpContextAccessor to enable accessing HTTP context outside controllers
 builder.Services.AddHttpContextAccessor();
