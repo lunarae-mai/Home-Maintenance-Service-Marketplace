@@ -64,5 +64,77 @@ namespace HomeServicesPlatform.Application.Services
             EndTime = a.EndTime,
             IsAvailable = a.IsAvailable
         };
+
+        public async Task<IEnumerable<TimeSlotDto>> GenerateSlotsAsync(int providerId, DateTime fromDate, int daysAhead = 7)
+{
+    var weeklyAvailability = await _context.ProviderAvailabilities
+        .Where(a => a.ProviderId == providerId && a.IsAvailable)
+        .ToListAsync();
+
+    if (!weeklyAvailability.Any())
+        throw new InvalidOperationException("This provider has not set any weekly availability yet.");
+
+    // Find slots that already exist in this date range so we never duplicate them
+    var rangeEnd = fromDate.Date.AddDays(daysAhead);
+    var existingSlots = await _context.TimeSlots
+        .Where(s => s.ProviderId == providerId
+                 && s.Date >= fromDate.Date
+                 && s.Date < rangeEnd)
+        .Select(s => new { s.Date, s.StartTime })
+        .ToListAsync();
+
+    var existingKeys = existingSlots
+        .Select(s => (s.Date.Date, s.StartTime))
+        .ToHashSet();
+
+    var newSlots = new List<TimeSlot>();
+
+    for (int dayOffset = 0; dayOffset < daysAhead; dayOffset++)
+    {
+        var currentDate = fromDate.Date.AddDays(dayOffset);
+        var dayAvailability = weeklyAvailability.Where(a => a.DayOfWeek == currentDate.DayOfWeek);
+
+        foreach (var window in dayAvailability)
+        {
+            var slotStart = window.StartTime;
+
+            // Walk forward in 1-hour increments until we hit the end of the window
+            while (slotStart.Add(TimeSpan.FromHours(1)) <= window.EndTime)
+            {
+                var key = (currentDate, slotStart);
+
+                if (!existingKeys.Contains(key))
+                {
+                    newSlots.Add(new TimeSlot
+                    {
+                        ProviderId = providerId,
+                        Date = currentDate,
+                        StartTime = slotStart,
+                        EndTime = slotStart.Add(TimeSpan.FromHours(1)),
+                        IsBooked = false
+                    });
+                }
+
+                slotStart = slotStart.Add(TimeSpan.FromHours(1));
+            }
+        }
+    }
+
+    if (newSlots.Any())
+    {
+        await _context.TimeSlots.AddRangeAsync(newSlots);
+        await _context.SaveChangesAsync();
+    }
+
+    return newSlots.Select(s => new TimeSlotDto
+    {
+        Id = s.Id,
+        ProviderId = s.ProviderId,
+        Date = s.Date,
+        StartTime = s.StartTime,
+        EndTime = s.EndTime,
+        IsBooked = s.IsBooked
+    });
+}
     }
 }

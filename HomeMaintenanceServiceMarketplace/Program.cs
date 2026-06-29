@@ -78,6 +78,8 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+
 var app = builder.Build();
 
 // ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====

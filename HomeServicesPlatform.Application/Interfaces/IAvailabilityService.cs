@@ -6,5 +6,5 @@ namespace HomeServicesPlatform.Application.Interfaces
     {
         Task<IEnumerable<AvailabilityResponseDto>> SetWeeklyAvailabilityAsync(int providerId, SetAvailabilityDto dto);
         Task<IEnumerable<AvailabilityResponseDto>> GetWeeklyAvailabilityAsync(int providerId);
-    }
+        Task<IEnumerable<TimeSlotDto>> GenerateSlotsAsync(int providerId, DateTime fromDate, int daysAhead = 7);    }
 }
