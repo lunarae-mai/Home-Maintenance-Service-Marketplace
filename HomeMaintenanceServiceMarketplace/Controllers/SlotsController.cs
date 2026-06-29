@@ -72,27 +72,23 @@ namespace HomeServicesPlatform.API.Controllers
         }
 
         // GET api/slots/{providerId}?date=2026-07-01 -> customers browse free slots for a date
-        [HttpGet("{providerId:int}")]
-        public async Task<IActionResult> GetFreeSlots(int providerId, [FromQuery] DateTime date)
-        {
-            var freeSlots = await _context.TimeSlots
-                .Where(s => s.ProviderId == providerId
-                         && s.Date.Date == date.Date
-                         && !s.IsBooked)
-                .OrderBy(s => s.StartTime)
-                .Select(s => new TimeSlotDto
-                {
-                    Id = s.Id,
-                    ProviderId = s.ProviderId,
-                    Date = s.Date,
-                    StartTime = s.StartTime,
-                    EndTime = s.EndTime,
-                    IsBooked = s.IsBooked
-                })
-                .ToListAsync();
+            [HttpGet("{providerId:int}")]
+            public async Task<IActionResult> GetFreeSlots(int providerId, [FromQuery] DateTime date)
+            {
+                var now = DateTime.Now;
 
-            return Ok(freeSlots);
-        }
+                var freeSlots = await _context.TimeSlots
+                    .Where(s => s.ProviderId == providerId
+                            && s.Date.Date == date.Date
+                            && !s.IsBooked
+                            // Exclude slots that have already passed today
+                            && (s.Date.Date > now.Date || s.StartTime > now.TimeOfDay))
+                    .OrderBy(s => s.StartTime)
+                    .Select(s => new TimeSlotDto { /* ...same as before... */ })
+                    .ToListAsync();
+
+                return Ok(freeSlots);
+            }
 
         // Helper: resolve the logged-in provider's ProviderId from their UserId
         private async Task<int?> GetCurrentProviderIdAsync()

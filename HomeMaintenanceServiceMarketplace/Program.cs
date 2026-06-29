@@ -65,7 +65,8 @@ builder.Services.AddScoped<IProviderManagementService, ProviderManagementService
 
 // Register Availability Service- mai
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
-
+//slot sprint 2
+builder.Services.AddHostedService<HomeServicesPlatform.Infrastructure.BackgroundJobs.SlotGenerationBackgroundService>();
 
 // Register the HttpContextAccessor to enable accessing HTTP context outside controllers
 builder.Services.AddHttpContextAccessor();
@@ -78,7 +79,6 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
-builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 
 var app = builder.Build();
 
