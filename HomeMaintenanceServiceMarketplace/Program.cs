@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using HomeServicesPlatform.Application.DTOs.Booking;
+using HomeServicesPlatform.API.Extensions; // Import extension for middleware
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +76,10 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 
 var app = builder.Build();
+
+// ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====
+// This must be FIRST in the pipeline to catch all exceptions
+app.UseGlobalExceptionHandling();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
