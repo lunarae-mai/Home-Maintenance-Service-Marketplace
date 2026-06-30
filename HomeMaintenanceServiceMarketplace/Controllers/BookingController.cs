@@ -10,18 +10,33 @@ using HomeServicesPlatform.Domain.Enums;
 
 namespace HomeServicesPlatform.API.Controllers
 {
+<<<<<<< Updated upstream
+    public class BookingController 
+    {
+       
+    }
+}
+=======
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class BookingController : ControllerBase
-    {
+    {/// <summary>
+/// Provides endpoints for creating and managing service bookings.
+/// </summary>
     private readonly IBookingService _bookingService;
 
     public BookingController(IBookingService bookingService)
     {
         _bookingService = bookingService;
     }
-
+/// <summary>
+/// Creates a new booking for a selected service provider.
+/// </summary>
+/// <param name="request">The booking information.</param>
+/// <returns>The created booking.</returns>
+[ProducesResponseType(StatusCodes.Status201Created)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost]
     [Authorize(Roles = "Customer")]
     public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
@@ -40,6 +55,7 @@ namespace HomeServicesPlatform.API.Controllers
     }
 
 
+
     [HttpPut("{id}/confirm")]
     [Authorize(Roles = "Provider")]   
     public async Task<IActionResult> ConfirmBooking(int id)
@@ -52,7 +68,13 @@ namespace HomeServicesPlatform.API.Controllers
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
-
+/// <summary>
+/// Cancels an existing booking.
+/// </summary>
+/// <param name="id">The booking identifier.</param>
+/// <returns>A confirmation that the booking has been cancelled.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
 
     [HttpPut("{id}/cancel")]
     [Authorize(Roles = "Customer,Provider")]  
@@ -67,7 +89,11 @@ namespace HomeServicesPlatform.API.Controllers
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 
-
+/// <summary>
+/// Retrieves all bookings created by the authenticated user.
+/// </summary>
+/// <returns>A list of the user's bookings.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
     [HttpGet("customer/{customerId}/history")]
     [Authorize(Roles = "Customer")]
     public async Task<IActionResult> GetBookingHistory(string customerId)
@@ -119,3 +145,4 @@ namespace HomeServicesPlatform.API.Controllers
         }
     }
 }
+>>>>>>> Stashed changes

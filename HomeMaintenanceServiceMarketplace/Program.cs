@@ -9,8 +9,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+<<<<<<< Updated upstream
+=======
+using System.Reflection;
+
 using HomeServicesPlatform.Application.DTOs.Booking;
-using HomeServicesPlatform.API.Extensions; // Import extension for middleware
+using HomeServicesPlatform.Application.Mappings;
+>>>>>>> Stashed changes
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,7 +58,19 @@ builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
+builder.Services.AddSwaggerGen(options =>
+
+{
+
+var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+
+options.IncludeXmlComments(
+
+Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+});
 
 // Register Repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -83,6 +100,14 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
 
+<<<<<<< Updated upstream
+=======
+//booking
+builder.Services.AddScoped<IBookingService, BookingService>();
+
+ builder.Services.AddAutoMapper(typeof(MappingProfile));
+ 
+>>>>>>> Stashed changes
 var app = builder.Build();
 
 // ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====

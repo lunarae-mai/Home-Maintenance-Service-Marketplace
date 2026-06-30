@@ -1,3 +1,8 @@
+<<<<<<< Updated upstream
+﻿namespace HomeServicesPlatform.API.Controllers
+{
+    public class PaymentController 
+=======
 ﻿using Microsoft.AspNetCore.Mvc;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.DTOs.Payment;
@@ -9,14 +14,26 @@ using Microsoft.AspNetCore.Authorization;
 [Authorize]
 
 public class PaymentsController : ControllerBase
-{
+{/// <summary>
+/// Provides endpoints for processing and verifying payments.
+/// </summary>
     private readonly IPaymentService _paymentService;
 
     public PaymentsController(IPaymentService paymentService)
+>>>>>>> Stashed changes
     {
-        _paymentService = paymentService;
+        
     }
-
+<<<<<<< Updated upstream
+}
+=======
+/// <summary>
+/// Verifies a cash payment and marks the booking as paid.
+/// </summary>
+/// <param name="dto">The payment verification information.</param>
+/// <returns>A confirmation that the payment was successfully verified.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
     // Endpoint for the Provider to manually update the PaymentStatus to Paid
     [HttpPost("verify-cash")]
     [Authorize(Roles = "Provider")]
@@ -31,3 +48,4 @@ public class PaymentsController : ControllerBase
     }
 
 }
+>>>>>>> Stashed changes
