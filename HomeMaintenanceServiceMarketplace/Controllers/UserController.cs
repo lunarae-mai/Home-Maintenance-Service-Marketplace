@@ -9,14 +9,21 @@ namespace HomeServicesPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
-    {
+    {/// <summary>
+/// Provides endpoints for viewing and updating the authenticated user's profile.
+/// </summary>
         private readonly IProfileManagementService _profileManagementService;
 
         public UserController(IProfileManagementService profileManagementService)
         {
             _profileManagementService = profileManagementService;
         }
-
+/// <summary>
+/// Retrieves the authenticated user's profile information.
+/// </summary>
+/// <returns>The current user's profile.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
         // GET PROFILE
         [HttpGet("me")]
         public async Task<IActionResult> GetMyProfile()
@@ -31,6 +38,17 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(user);
         }
 
+<<<<<<< Updated upstream
+=======
+        /// <summary>
+/// Updates the authenticated user's profile information.
+/// </summary>
+/// <param name="request">The updated profile information.</param>
+/// <returns>The updated user profile.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+>>>>>>> Stashed changes
         // UPDATE PROFILE
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)

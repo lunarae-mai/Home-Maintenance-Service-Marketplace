@@ -9,15 +9,29 @@ namespace HomeServicesPlatform.API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     public class ProvidersController : ControllerBase
-    {
+    {/// <summary>
+/// Provides endpoints for provider registration and provider search.
+/// </summary>
         private readonly IProviderManagementService _providerService;
 
         public ProvidersController(IProviderManagementService providerService)
         {
             _providerService = providerService;
         }
+<<<<<<< Updated upstream
 
        
+=======
+/// <summary>
+/// Registers the authenticated user as a service provider.
+/// </summary>
+/// <param name="dto">The provider registration information.</param>
+/// <returns>The registered provider profile.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
+
+>>>>>>> Stashed changes
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterProviderDto dto)
         {
@@ -35,7 +49,12 @@ namespace HomeServicesPlatform.API.Controllers
             return BadRequest(new { message = "Registration failed. Profile might already exist." }); 
         
         }
-
+/// <summary>
+/// Searches service providers using filtering and pagination.
+/// </summary>
+/// <param name="filter">Provider search criteria including service, rating, pricing type, page number, and page size.</param>
+/// <returns>A paginated list of matching providers.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
         
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
@@ -68,8 +87,17 @@ namespace HomeServicesPlatform.API.Controllers
             return BadRequest(new { message = "Failed to update status. Check if Provider ID is correct." });
 
         }
+<<<<<<< Updated upstream
         // GET api/providers/search?serviceId=2
     // GET api/providers/search?serviceId=2&minRating=4&priceType=Fixed&page=1&pageSize=10
+=======
+        /// <summary>
+/// Searches service providers using filtering and pagination.
+/// </summary>
+/// <param name="filter">Filtering options including service, minimum rating, pricing type, page number, and page size.</param>
+/// <returns>A paginated list of matching providers.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+>>>>>>> Stashed changes
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {
