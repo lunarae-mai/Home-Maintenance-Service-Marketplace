@@ -79,6 +79,9 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+// Register the review service
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
 
 var app = builder.Build();
 
