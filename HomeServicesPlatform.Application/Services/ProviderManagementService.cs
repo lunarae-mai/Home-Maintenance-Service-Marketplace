@@ -120,7 +120,17 @@ namespace HomeServicesPlatform.Application.Services
             }
         }
 
-public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByServiceAsync(int serviceId)
+        // Function to get all the pending providers (waiting for acceptance by the admin)
+        public async Task<IEnumerable<ProviderProfile>> GetPendingProvidersAsync()
+        {
+            return await _context.ProviderProfiles
+                .Where(p =>
+                    p.Status == ProviderStatus.PendingApproval)
+                .Include(p => p.ProviderServices)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByServiceAsync(int serviceId)
 {
     return await _context.ProviderServices
         .Where(ps => ps.ServiceId == serviceId

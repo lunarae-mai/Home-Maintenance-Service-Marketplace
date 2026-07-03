@@ -1,9 +1,10 @@
-﻿using HomeServicesPlatform.Application.DTOs.Provider;
+﻿using HomeServicesPlatform.Application.DTOs.Common;
+using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Domain.Enums;
+using HomeServicesPlatform.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using HomeServicesPlatform.Application.DTOs.Common;
 
 namespace HomeServicesPlatform.Application.Interfaces
 {
@@ -17,5 +18,9 @@ namespace HomeServicesPlatform.Application.Interfaces
 
         // Method --> Get provider profile info. 
         Task<RegisterProviderDto> GetProviderProfileAsync(string userId);
- Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);    }
+
+        // Method --> Get pending profiles info.
+        Task<IEnumerable<ProviderProfile>> GetPendingProvidersAsync();
+
+        Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);    }
 }
