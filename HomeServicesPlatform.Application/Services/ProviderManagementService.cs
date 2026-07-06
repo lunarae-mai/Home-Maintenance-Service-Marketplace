@@ -68,6 +68,72 @@ namespace HomeServicesPlatform.Application.Services
             }
         }
 
+        public async Task<bool> AddProviderServiceAsync(string userId, ProviderServiceDto dto)
+        {
+            // Get provider profile for the current logged-in user
+            var provider = await _context.ProviderProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (provider == null)
+                return false;
+
+            // Prevent adding the same service twice
+            var exists = await _context.ProviderServices.AnyAsync(ps =>
+                ps.ProviderId == provider.Id &&
+                ps.ServiceId == dto.ServiceId);
+
+            if (exists)
+                return false;
+
+            var providerService = new ProviderService
+            {
+                ProviderId = provider.Id,
+                ServiceId = dto.ServiceId,
+                BasePrice = dto.BasePrice
+            };
+
+            _context.ProviderServices.Add(providerService);
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> UpdateProviderServiceAsync(string userId,int serviceId, UpdateProviderServiceDto dto)
+        {
+            // Get provider service for the current logged-in provider
+            var providerService = await _context.ProviderServices
+                .Include(ps => ps.Provider)
+                .FirstOrDefaultAsync(ps =>
+                    ps.Provider.UserId == userId &&
+                    ps.ServiceId == serviceId);
+
+            if (providerService == null)
+                return false;
+
+            // Update editable fields
+            providerService.BasePrice = dto.BasePrice;
+            providerService.PriceType = dto.PriceType;
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<bool> DeleteProviderServiceAsync(string userId,int serviceId)
+        {
+            // Get provider service for the current logged-in provider
+            var providerService = await _context.ProviderServices
+                .Include(ps => ps.Provider)
+                .FirstOrDefaultAsync(ps =>
+                    ps.Provider.UserId == userId &&
+                    ps.ServiceId == serviceId);
+
+            if (providerService == null)
+                return false;
+
+            // Remove the provider service
+            _context.ProviderServices.Remove(providerService);
+
+            return await _context.SaveChangesAsync() > 0;
+        }
+       
         public async Task<bool> UpdateProviderStatusAsync(int providerId, ProviderStatus status)
         {
             try
@@ -120,7 +186,7 @@ namespace HomeServicesPlatform.Application.Services
             }
         }
 
-public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByServiceAsync(int serviceId)
+        public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByServiceAsync(int serviceId)
 {
     return await _context.ProviderServices
         .Where(ps => ps.ServiceId == serviceId
@@ -139,7 +205,8 @@ public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByService
         .OrderByDescending(p => p.AvgRating)
         .ToListAsync();
 }
-public async Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter)
+      
+        public async Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter)
 {
     
     // We query ProviderServices (the join table) because it links
@@ -185,5 +252,6 @@ public async Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(
         PageSize   = filter.PageSize
     };
 }
+    
     }
 }

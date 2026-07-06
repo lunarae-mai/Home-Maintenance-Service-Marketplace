@@ -17,5 +17,16 @@ namespace HomeServicesPlatform.Application.Interfaces
 
         // Method --> Get provider profile info. 
         Task<RegisterProviderDto> GetProviderProfileAsync(string userId);
- Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);    }
+
+        // Method --> Add new service after provider registration
+        Task<bool> AddProviderServiceAsync(string userId, ProviderServiceDto dto);
+       
+        // Method --> Update provider service details
+        Task<bool> UpdateProviderServiceAsync(string userId, int serviceId, UpdateProviderServiceDto dto);
+
+        // Method --> Delete provider service
+        Task<bool> DeleteProviderServiceAsync(string userId, int serviceId);
+
+        Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter);  
+    }
 }

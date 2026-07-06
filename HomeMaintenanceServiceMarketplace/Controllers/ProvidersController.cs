@@ -42,7 +42,65 @@ namespace HomeServicesPlatform.API.Controllers
         
         }
 
-        
+
+        [HttpPost("services")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> AddService([FromBody] ProviderServiceDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.AddProviderServiceAsync(userId, dto);
+
+            if (!result)
+                return BadRequest(new { message = "Failed to add service." });
+
+            return Ok(new { message = "Service added successfully." });
+        }
+
+
+        [HttpPut("services/{serviceId}")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> UpdateService(int serviceId,[FromBody] UpdateProviderServiceDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.UpdateProviderServiceAsync(userId,serviceId,dto);
+
+            if (!result)
+            {
+                return BadRequest(new { message = "Failed to update service."});
+            }
+
+            return Ok(new { message = "Service updated successfully." });
+        }
+
+
+        [HttpDelete("services/{serviceId}")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> DeleteService(int serviceId)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.DeleteProviderServiceAsync(userId,serviceId);
+
+            if (!result)
+            {
+                return BadRequest(new { message = "Failed to delete service." });
+            }
+
+            return Ok(new { message = "Service deleted successfully." });
+        }
+
+
         [HttpGet("profile")]
         [Authorize(Roles = "Provider")]
         public async Task<IActionResult> GetProfile()
@@ -80,6 +138,7 @@ namespace HomeServicesPlatform.API.Controllers
 
         }
         
+
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {
