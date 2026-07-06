@@ -22,6 +22,10 @@ namespace HomeServicesPlatform.API.Controllers
             _providerService = providerService;
             _currentUserService = currentUserService;
         }
+<<<<<<< Updated upstream
+
+       
+=======
 /// <summary>
 /// Registers the authenticated user as a service provider.
 /// </summary>
@@ -31,6 +35,7 @@ namespace HomeServicesPlatform.API.Controllers
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 
+>>>>>>> Stashed changes
         [HttpPost("register")]
         [Authorize(Roles = "Provider")]
         public async Task<IActionResult> Register([FromBody] RegisterProviderDto dto)
@@ -93,12 +98,17 @@ namespace HomeServicesPlatform.API.Controllers
             return BadRequest(new { message = "Failed to update status. Check if Provider ID is correct." });
 
         }
+<<<<<<< Updated upstream
+        // GET api/providers/search?serviceId=2
+    // GET api/providers/search?serviceId=2&minRating=4&priceType=Fixed&page=1&pageSize=10
+=======
         /// <summary>
 /// Searches service providers using filtering and pagination.
 /// </summary>
 /// <param name="filter">Filtering options including service, minimum rating, pricing type, page number, and page size.</param>
 /// <returns>A paginated list of matching providers.</returns>
 [ProducesResponseType(StatusCodes.Status200OK)]
+>>>>>>> Stashed changes
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {
