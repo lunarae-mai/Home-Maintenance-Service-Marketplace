@@ -61,6 +61,21 @@ namespace HomeServicesPlatform.API.Controllers
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
+    
+    
+    
+    [HttpPut("{id}/reject")]
+    [Authorize(Roles = "Provider")]
+    public async Task<IActionResult> RejectBooking(int id)
+    {
+        try
+        {
+            var result = await _bookingService.RejectBookingAsync(id);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
 /// <summary>
 /// Cancels an existing booking.
 /// </summary>

@@ -116,6 +116,27 @@ namespace HomeServicesPlatform.Application.Services
             return MapToDto(booking);
         }
 
+// Pending → Rejected  (provider declines the booking and frees the slot)
+        public async Task<BookingResponseDto> RejectBookingAsync(int bookingId)
+        {
+            var booking = await GetBookingOrThrowAsync(bookingId);
+            EnsureStatus(booking, BookingStatus.Pending, "reject");
+
+            booking.Status = BookingStatus.Rejected;
+            _bookingRepository.Update(booking);
+
+            // Free the slot so another customer can book it
+            var slot = await _context.TimeSlots.FindAsync(booking.SlotId);
+            if (slot != null)
+            {
+                slot.IsBooked = false;
+                _context.TimeSlots.Update(slot);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
         // Confirmed → In Progress  (work has started)
         public async Task<BookingResponseDto> StartBookingAsync(int bookingId)
         {
