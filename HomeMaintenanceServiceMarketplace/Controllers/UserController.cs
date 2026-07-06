@@ -38,8 +38,6 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(user);
         }
 
-<<<<<<< Updated upstream
-=======
         /// <summary>
 /// Updates the authenticated user's profile information.
 /// </summary>
@@ -48,7 +46,6 @@ namespace HomeServicesPlatform.API.Controllers
 [ProducesResponseType(StatusCodes.Status200OK)]
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
->>>>>>> Stashed changes
         // UPDATE PROFILE
         [HttpPut("me")]
         public async Task<IActionResult> UpdateProfile(UpdateProfileDto dto)

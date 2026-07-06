@@ -1,8 +1,3 @@
-<<<<<<< Updated upstream
-﻿namespace HomeServicesPlatform.API.Controllers
-{
-    public class PaymentController 
-=======
 ﻿using Microsoft.AspNetCore.Mvc;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.DTOs.Payment;
@@ -20,13 +15,9 @@ public class PaymentsController : ControllerBase
     private readonly IPaymentService _paymentService;
 
     public PaymentsController(IPaymentService paymentService)
->>>>>>> Stashed changes
     {
         
     }
-<<<<<<< Updated upstream
-}
-=======
 /// <summary>
 /// Verifies a cash payment and marks the booking as paid.
 /// </summary>
@@ -48,4 +39,3 @@ public class PaymentsController : ControllerBase
     }
 
 }
->>>>>>> Stashed changes

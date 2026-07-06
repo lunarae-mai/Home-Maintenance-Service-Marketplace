@@ -1,12 +1,5 @@
 ﻿namespace HomeServicesPlatform.API.Controllers
 {
-<<<<<<< Updated upstream
-    public class BookingController 
-    {
-       
-    }
-}
-=======
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -135,4 +128,3 @@
         }
     }
 }
->>>>>>> Stashed changes

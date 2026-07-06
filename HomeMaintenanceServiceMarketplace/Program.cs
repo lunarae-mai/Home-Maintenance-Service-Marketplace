@@ -8,13 +8,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-<<<<<<< Updated upstream
-=======
 using System.Reflection;
 
 using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Mappings;
->>>>>>> Stashed changes
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,14 +76,18 @@ builder.Services.AddScoped<IProviderManagementService, ProviderManagementService
 
 builder.Services.AddScoped<IServiceService, ServiceService>();
 
-<<<<<<< Updated upstream
-=======
+
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+// Register the review service
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
+
+
+
  builder.Services.AddAutoMapper(typeof(MappingProfile));
  
->>>>>>> Stashed changes
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

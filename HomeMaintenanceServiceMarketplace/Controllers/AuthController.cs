@@ -44,8 +44,6 @@ namespace HomeServicesPlatform.API.Controllers
             var result = await _authService.LoginAsync(dto);
             return Ok(result);
         }
-<<<<<<< Updated upstream
-=======
 /// <summary>
 /// Refreshes an expired JWT access token using a valid refresh token.
 /// </summary>
@@ -68,6 +66,5 @@ namespace HomeServicesPlatform.API.Controllers
             }
         }
 
->>>>>>> Stashed changes
     }
 }

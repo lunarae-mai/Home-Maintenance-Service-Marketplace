@@ -31,8 +31,7 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(categories);
         }
 
-<<<<<<< Updated upstream
-=======
+
 /// <summary>
 /// Retrieves all services belonging to a specific category.
 /// </summary>
@@ -40,7 +39,6 @@ namespace HomeServicesPlatform.API.Controllers
 /// <returns>A list of services in the selected category.</returns>
 [ProducesResponseType(StatusCodes.Status200OK)]
 [ProducesResponseType(StatusCodes.Status404NotFound)]
->>>>>>> Stashed changes
         // GET api/service/categories/3/services — returns all services in that category
         [HttpGet("categories/{categoryId}/services")]
         public async Task<IActionResult> GetServicesByCategory(int categoryId)
@@ -49,8 +47,7 @@ namespace HomeServicesPlatform.API.Controllers
             return Ok(services);
         }
 
-<<<<<<< Updated upstream
-=======
+
 /// <summary>
 /// Retrieves detailed information about a specific service.
 /// </summary>
@@ -58,7 +55,6 @@ namespace HomeServicesPlatform.API.Controllers
 /// <returns>The requested service.</returns>
 [ProducesResponseType(StatusCodes.Status200OK)]
 [ProducesResponseType(StatusCodes.Status404NotFound)]
->>>>>>> Stashed changes
         // GET api/service/5 — returns one specific service
         [HttpGet("{serviceId}")]
         public async Task<IActionResult> GetServiceById(int serviceId)
@@ -67,8 +63,6 @@ namespace HomeServicesPlatform.API.Controllers
             if (service == null) return NotFound();
             return Ok(service);
         }
-<<<<<<< Updated upstream
-=======
         /// <summary>
 /// Searches services by name and category with pagination.
 /// </summary>
@@ -84,6 +78,5 @@ namespace HomeServicesPlatform.API.Controllers
         return Ok(result);
     }
     
->>>>>>> Stashed changes
     }
 }

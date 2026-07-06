@@ -1,11 +1,6 @@
 ﻿
 namespace HomeServicesPlatform.API.Controllers
 {
-<<<<<<< Updated upstream
-    public class ReviewController 
-    {
-       
-=======
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -226,6 +221,5 @@ namespace HomeServicesPlatform.API.Controllers
         public int BookingId { get; set; }
         public int Rating { get; set; } // 1-5
         public string Comment { get; set; } = string.Empty;
->>>>>>> Stashed changes
     }
 }
