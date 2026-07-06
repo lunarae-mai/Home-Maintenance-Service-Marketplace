@@ -8,6 +8,8 @@ using HomeServicesPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using HomeServicesPlatform.API.Extensions;
+
 using System.Text;
 
 using System.Reflection;
@@ -134,6 +136,7 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<HomeServicesPlatform.Infrastructure.Data.AppDbContext>();
+    await context.Database.MigrateAsync();
     await HomeServicesPlatform.Infrastructure.Seed.DbSeeder.SeedData(context);
 }
 
