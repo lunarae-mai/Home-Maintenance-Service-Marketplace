@@ -4,7 +4,7 @@ using HomeServicesPlatform.Domain.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using HomeServicesPlatform.Application.DTOs.Common;
 namespace HomeServicesPlatform.API.Controllers
 {
     /// <summary>
@@ -42,7 +42,11 @@ namespace HomeServicesPlatform.API.Controllers
             var userId = _currentUserService.UserId;
 
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+                return Unauthorized(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Unauthorized."
+});
 
             var booking = await _context.Bookings
                 .Include(b => b.Customer)
@@ -50,10 +54,18 @@ namespace HomeServicesPlatform.API.Controllers
                 .FirstOrDefaultAsync(b => b.Id == dto.BookingId);
 
             if (booking == null)
-                return NotFound(new { message = "Booking not found." });
+            return NotFound(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Booking not found."
+});
 
             if (booking.Status != BookingStatus.Paid)
-                return BadRequest(new { message = "Reviews can only be submitted after payment is completed." });
+                return BadRequest(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Reviews can only be submitted after payment is completed."
+});
 
             if (booking.CustomerId != userId && booking.Provider.UserId != userId)
                 return Forbid();
@@ -62,7 +74,11 @@ namespace HomeServicesPlatform.API.Controllers
                 .AnyAsync(r => r.BookingId == dto.BookingId && r.ReviewerId == userId);
 
             if (existingReview)
-                return BadRequest(new { message = "You have already reviewed this booking." });
+                return BadRequest(new ApiResponse<object>
+{
+    Success = false,
+    Message = "You have already reviewed this booking."
+});
 
             string revieweeId;
             string reviewerType;
@@ -96,8 +112,11 @@ namespace HomeServicesPlatform.API.Controllers
                 await UpdateProviderAverageRating(booking.ProviderId);
             }
 
-            return Ok(new { message = "Review submitted successfully." });
-        }
+return Ok(new ApiResponse<object>
+{
+    Success = true,
+    Message = "Review submitted successfully."
+});       }
 
         /// <summary>
         /// Retrieves all reviews associated with a specific booking.
@@ -121,7 +140,12 @@ namespace HomeServicesPlatform.API.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(reviews);
+          return Ok(new ApiResponse<object>
+{
+    Success = true,
+    Message = "Reviews retrieved successfully.",
+    Data = reviews
+});
         }
 
         /// <summary>
@@ -139,28 +163,57 @@ namespace HomeServicesPlatform.API.Controllers
             var userId = _currentUserService.UserId;
 
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
+            return Unauthorized(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Unauthorized."
+});
 
             var booking = await _context.Bookings
                 .Include(b => b.Provider)
                 .FirstOrDefaultAsync(b => b.Id == bookingId);
 
             if (booking == null)
-                return NotFound();
+                return NotFound(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Booking not found."
+});
 
             if (booking.CustomerId != userId && booking.Provider.UserId != userId)
                 return Forbid();
 
             if (booking.Status != BookingStatus.Paid)
-                return Ok(new { canReview = false, reason = "Payment not completed yet." });
+                return Ok(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Payment not completed yet."
+});
 
             var hasReviewed = await _context.Reviews
                 .AnyAsync(r => r.BookingId == bookingId && r.ReviewerId == userId);
 
             if (hasReviewed)
-                return Ok(new { canReview = false, reason = "You have already reviewed this booking." });
+                return Ok(new ApiResponse<object>
+{
+    Success = true,
+    Message = "Review eligibility checked.",
+    Data = new
+    {
+        canReview = false,
+        reason = "You have already reviewed this booking."
+    }
+});
 
-            return Ok(new { canReview = true });
+           return Ok(new ApiResponse<object>
+{
+    Success = true,
+    Message = "Review eligibility checked.",
+    Data = new
+    {
+        canReview = true
+    }
+});
         }
 
         /// <summary>
@@ -178,7 +231,11 @@ namespace HomeServicesPlatform.API.Controllers
                 .FirstOrDefaultAsync(p => p.Id == providerId);
 
             if (provider == null)
-                return NotFound();
+                return NotFound(new ApiResponse<object>
+{
+    Success = false,
+    Message = "Provider not found."
+});
 
             var reviews = await _context.Reviews
                 .Where(r => r.RevieweeId == provider.UserId && r.ReviewerType == "Customer")
@@ -192,14 +249,18 @@ namespace HomeServicesPlatform.API.Controllers
                 })
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
-
-            return Ok(new
-            {
-                providerName = provider.User.Name,
-                averageRating = provider.AvgRating,
-                totalReviews = reviews.Count,
-                reviews
-            });
+return Ok(new ApiResponse<object>
+{
+    Success = true,
+    Message = "Provider reviews retrieved successfully.",
+    Data = new
+    {
+        providerName = provider.User.Name,
+        averageRating = provider.AvgRating,
+        totalReviews = reviews.Count,
+        reviews
+    }
+});
         }
 
         private async Task UpdateProviderAverageRating(int providerId)

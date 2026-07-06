@@ -17,6 +17,7 @@ using System.Reflection;
 using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Mappings;
 using HomeServicesPlatform.API.Extensions; 
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,17 +61,26 @@ builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
 
-
 builder.Services.AddSwaggerGen(options =>
-
 {
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
 
-var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(
+        Path.Combine(AppContext.BaseDirectory, xmlFilename));
 
-options.IncludeXmlComments(
+    options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
 
-Path.Combine(AppContext.BaseDirectory, xmlFilename));
-
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("bearer", document)] = []
+        });
 });
 
 // Register Repositories
