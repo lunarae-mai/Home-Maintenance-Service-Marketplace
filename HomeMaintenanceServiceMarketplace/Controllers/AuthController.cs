@@ -11,12 +11,22 @@ namespace HomeServicesPlatform.API.Controllers
     {/// <summary>
 /// Provides endpoints for user authentication and account management.
 /// </summary>
+    {/// <summary>
+/// Provides endpoints for user authentication and account management.
+/// </summary>
         private readonly IAuthService _authService;
 
         public AuthController(IAuthService authService)
         {
             _authService = authService;
         }
+/// <summary>
+/// Registers a new user account.
+/// </summary>
+/// <param name="request">The user registration information.</param>
+/// <returns>Returns the created user details if registration is successful.</returns>
+[ProducesResponseType(StatusCodes.Status201Created)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
 /// <summary>
 /// Registers a new user account.
 /// </summary>
@@ -38,6 +48,13 @@ namespace HomeServicesPlatform.API.Controllers
 /// <returns>A JWT token for authenticated access.</returns>
 [ProducesResponseType(StatusCodes.Status200OK)]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+/// <summary>
+/// Authenticates a user and returns a JWT access token.
+/// </summary>
+/// <param name="request">The user's login credentials.</param>
+/// <returns>A JWT token for authenticated access.</returns>
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
@@ -45,8 +62,6 @@ namespace HomeServicesPlatform.API.Controllers
             var result = await _authService.LoginAsync(dto);
             return Ok(result);
         }
-<<<<<<< Updated upstream
-=======
 /// <summary>
 /// Refreshes an expired JWT access token using a valid refresh token.
 /// </summary>
@@ -69,6 +84,5 @@ namespace HomeServicesPlatform.API.Controllers
             }
         }
 
->>>>>>> Stashed changes
     }
 }

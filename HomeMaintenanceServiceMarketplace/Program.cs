@@ -9,13 +9,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-<<<<<<< Updated upstream
-=======
+
 using System.Reflection;
 
 using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Mappings;
->>>>>>> Stashed changes
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,14 +99,17 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
 
-<<<<<<< Updated upstream
-=======
+
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
  builder.Services.AddAutoMapper(typeof(MappingProfile));
  
->>>>>>> Stashed changes
+
+
+
+ builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 var app = builder.Build();
 
 // ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====
