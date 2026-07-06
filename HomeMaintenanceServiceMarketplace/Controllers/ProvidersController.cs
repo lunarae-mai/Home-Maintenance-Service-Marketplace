@@ -3,37 +3,36 @@ using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace HomeServicesPlatform.API.Controllers
 {
+    /// <summary>
+    /// Provides endpoints for provider registration, profile management, status updates, and provider search.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class ProvidersController : ControllerBase
-    {/// <summary>
-/// Provides endpoints for provider registration and provider search.
-/// </summary>
-    {/// <summary>
-/// Provides endpoints for provider registration and provider search.
-/// </summary>
+    {
         private readonly IProviderManagementService _providerService;
         private readonly ICurrentUserService _currentUserService;
 
-        public ProvidersController(IProviderManagementService providerService, ICurrentUserService currentUserService)
+        public ProvidersController(
+            IProviderManagementService providerService,
+            ICurrentUserService currentUserService)
         {
             _providerService = providerService;
             _currentUserService = currentUserService;
         }
-/// <summary>
-/// Registers the authenticated user as a service provider.
-/// </summary>
-/// <param name="dto">The provider registration information.</param>
-/// <returns>The registered provider profile.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 
+        /// <summary>
+        /// Registers the authenticated user as a service provider.
+        /// </summary>
+        /// <param name="dto">The provider registration information.</param>
+        /// <returns>A confirmation that the registration request was submitted successfully.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [HttpPost("register")]
         [Authorize(Roles = "Provider")]
         public async Task<IActionResult> Register([FromBody] RegisterProviderDto dto)
@@ -47,76 +46,96 @@ namespace HomeServicesPlatform.API.Controllers
 
             if (result)
             {
-                return Ok(new { message = "Registration successful. Pending admin approval." }); 
+                return Ok(new
+                {
+                    message = "Registration successful. Pending admin approval."
+                });
             }
 
-            return BadRequest(new { message = "Registration failed. Profile might already exist." }); 
-        
+            return BadRequest(new
+            {
+                message = "Registration failed. Profile might already exist."
+            });
         }
-/// <summary>
-/// Searches service providers using filtering and pagination.
-/// </summary>
-/// <param name="filter">Provider search criteria including service, rating, pricing type, page number, and page size.</param>
-/// <returns>A paginated list of matching providers.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
-/// <summary>
-/// Searches service providers using filtering and pagination.
-/// </summary>
-/// <param name="filter">Provider search criteria including service, rating, pricing type, page number, and page size.</param>
-/// <returns>A paginated list of matching providers.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
-        
+
+        /// <summary>
+        /// Retrieves the authenticated provider's profile.
+        /// </summary>
+        /// <returns>The provider's profile information.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("profile")]
         [Authorize(Roles = "Provider")]
         public async Task<IActionResult> GetProfile()
         {
-
             var userId = _currentUserService.UserId;
 
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Fetch the data from Service
             var profile = await _providerService.GetProviderProfileAsync(userId);
 
             if (profile == null)
             {
-                return NotFound(new { message = "Profile not found for this user." });
+                return NotFound(new
+                {
+                    message = "Profile not found for this user."
+                });
             }
 
             return Ok(profile);
         }
 
-        
+        /// <summary>
+        /// Updates the approval status of a provider.
+        /// </summary>
+        /// <param name="providerId">The unique identifier of the provider.</param>
+        /// <param name="status">The new provider status.</param>
+        /// <returns>A confirmation that the provider status was updated.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPut("status")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateStatus(int providerId, ProviderStatus status)
-        { 
+        {
             var result = await _providerService.UpdateProviderStatusAsync(providerId, status);
 
-            if (result) 
+            if (result)
             {
-                return Ok(new { message = $"The provider's account is now {status}." });
+                return Ok(new
+                {
+                    message = $"The provider's account is now {status}."
+                });
             }
 
-            return BadRequest(new { message = "Failed to update status. Check if Provider ID is correct." });
-
+            return BadRequest(new
+            {
+                message = "Failed to update status. Check if Provider ID is correct."
+            });
         }
+
         /// <summary>
-/// Searches service providers using filtering and pagination.
-/// </summary>
-/// <param name="filter">Filtering options including service, minimum rating, pricing type, page number, and page size.</param>
-/// <returns>A paginated list of matching providers.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
+        /// Searches service providers using filtering and pagination.
+        /// </summary>
+        /// <param name="filter">
+        /// Search criteria including service ID, minimum rating, pricing type, page number, and page size.
+        /// </param>
+        /// <returns>A paginated list of providers matching the specified criteria.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {
             if (filter.ServiceId <= 0)
-                return BadRequest(new { message = "A valid serviceId is required." });
+                return BadRequest(new
+                {
+                    message = "A valid serviceId is required."
+                });
 
             var result = await _providerService.SearchProvidersAsync(filter);
+
             return Ok(result);
         }
-
-    } 
+    }
 }

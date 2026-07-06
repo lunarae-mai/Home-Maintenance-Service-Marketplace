@@ -11,7 +11,6 @@ namespace HomeServicesPlatform.API.Controllers
     {/// <summary>
 /// Provides endpoints for user authentication and account management.
 /// </summary>
-    {/// <summary>
 /// Provides endpoints for user authentication and account management.
 /// </summary>
         private readonly IAuthService _authService;
