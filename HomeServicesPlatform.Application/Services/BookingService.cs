@@ -22,6 +22,49 @@ namespace HomeServicesPlatform.Application.Services
 
         public async Task<BookingResponseDto> CreateBookingAsync(string customerId, CreateBookingDto dto)
         {
+            //concurrency / slot engine / s3
+            var slot = await _context.TimeSlots.FindAsync(dto.SlotId);
+
+            if (slot == null)
+                throw new KeyNotFoundException("Time slot not found.");
+
+            if (slot.ProviderId != dto.ProviderId)
+                throw new InvalidOperationException("The selected slot does not belong to this provider.");
+
+            if (slot.IsBooked)
+                throw new InvalidOperationException("This time slot is already booked. Please choose another slot.");
+
+            if (slot.Date < DateTime.Today || (slot.Date == DateTime.Today && slot.StartTime < DateTime.Now.TimeOfDay))
+                throw new InvalidOperationException("This time slot has already passed and cannot be booked.");
+
+            slot.IsBooked = true;
+            _context.TimeSlots.Update(slot);
+
+            var booking = new Booking
+            {
+                CustomerId = customerId,
+                ProviderId = dto.ProviderId,
+                ServiceId = dto.ServiceId,
+                SlotId = dto.SlotId,
+                Notes = dto.Notes,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _bookingRepository.AddAsync(booking);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "This time slot was just booked by someone else. Please choose a different slot.");
+            }
+
+            return MapToDto(booking);
+            /*
             // check the slot is free or not
             bool slotTaken = await _bookingRepository.IsSlotAlreadyBookedAsync(dto.SlotId);
             if (slotTaken)
@@ -56,7 +99,9 @@ namespace HomeServicesPlatform.Application.Services
             await _context.SaveChangesAsync();
 
             return MapToDto(booking);
+        */
         }
+        
 
         // Pending → Confirmed  (provider accepts the booking)
         public async Task<BookingResponseDto> ConfirmBookingAsync(int bookingId)
