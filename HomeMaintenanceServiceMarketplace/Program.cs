@@ -16,7 +16,7 @@ using System.Reflection;
 
 using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Mappings;
-
+using HomeServicesPlatform.API.Extensions; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,15 +99,6 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 
 // Register the review service
 builder.Services.AddScoped<IReviewService, ReviewService>();
-
-
-
-//booking
-builder.Services.AddScoped<IBookingService, BookingService>();
-
- builder.Services.AddAutoMapper(typeof(MappingProfile));
- 
-
 
 
  builder.Services.AddAutoMapper(typeof(MappingProfile));
