@@ -1,4 +1,6 @@
 ﻿using HomeServicesPlatform.Application.DTOs.Auth;
+using HomeServicesPlatform.Application.DTOs.Common;
+
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,8 +13,7 @@ namespace HomeServicesPlatform.API.Controllers
     {/// <summary>
 /// Provides endpoints for user authentication and account management.
 /// </summary>
-/// Provides endpoints for user authentication and account management.
-/// </summary>
+
         private readonly IAuthService _authService;
 
         public AuthController(IAuthService authService)
@@ -38,7 +39,13 @@ namespace HomeServicesPlatform.API.Controllers
         public async Task<IActionResult> Register(RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);
-            return Ok(result);
+           
+            return Created(string.Empty, new ApiResponse<object>
+            {
+                Success = true,
+                Message = "User registered successfully.",
+                Data = result
+            });
         }
 /// <summary>
 /// Authenticates a user and returns a JWT access token.
@@ -59,7 +66,12 @@ namespace HomeServicesPlatform.API.Controllers
         public async Task<IActionResult> Login(LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);
-            return Ok(result);
+           return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Login successful.",
+                Data = result
+            });
         }
 /// <summary>
 /// Refreshes an expired JWT access token using a valid refresh token.
@@ -75,11 +87,21 @@ namespace HomeServicesPlatform.API.Controllers
             {
                 var result = await _authService.RefreshTokenAsync(dto);
 
-                return Ok(result);
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Token refreshed successfully.",
+                    Data = result
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Failed to refresh token.",
+                    Errors = new List<string> { ex.Message }
+                });
             }
         }
 

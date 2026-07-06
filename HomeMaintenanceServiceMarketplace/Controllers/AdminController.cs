@@ -1,4 +1,6 @@
 ﻿using HomeServicesPlatform.Application.DTOs.Auth;
+using HomeServicesPlatform.Application.DTOs.Common;
+
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using HomeServicesPlatform.Domain.Models;
@@ -26,7 +28,12 @@ namespace HomeServicesPlatform.API.Controllers
             var providers =
                 await _providerService.GetPendingProvidersAsync();
 
-            return Ok(providers);
+           return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Pending providers retrieved successfully.",
+                Data = providers
+            });
         }
 
         [HttpPut("providers/{providerId}/approve")]
@@ -37,12 +44,18 @@ namespace HomeServicesPlatform.API.Controllers
                     providerId,
                     ProviderStatus.Approved);
 
-            if (!result)
-                return NotFound();
-
-            return Ok(new
+              if (!result)
             {
-                message = "Provider approved successfully."
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider not found."
+                });
+            }
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Provider approved successfully."
             });
         }
 
@@ -55,11 +68,16 @@ namespace HomeServicesPlatform.API.Controllers
                     ProviderStatus.Rejected);
 
             if (!result)
-                return NotFound();
+                 return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider not found."
+                });
 
-            return Ok(new
+            return Ok(new ApiResponse<object>
             {
-                message = "Provider rejected successfully."
+                Success = true,
+                Message = "Provider rejected successfully."
             });
         }
     }

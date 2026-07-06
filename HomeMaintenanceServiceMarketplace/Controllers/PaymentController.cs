@@ -2,7 +2,7 @@
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using HomeServicesPlatform.Application.DTOs.Common;
 namespace HomeServicesPlatform.API.Controllers
 {
     /// <summary>
@@ -33,17 +33,23 @@ namespace HomeServicesPlatform.API.Controllers
         {
             var result = await _paymentService.ProcessPaymentAsync(dto);
 
-            if (!result)
+               if (!result)
+    {
+        return BadRequest(new ApiResponse<object>
+        {
+            Success = false,
+            Message = "Payment could not be processed.",
+            Errors = new List<string>
             {
-                return BadRequest(new
-                {
-                    message = "Payment could not be processed. Ensure booking is completed and not already paid."
-                });
+                "Ensure booking is completed and not already paid."
             }
+        });
+    }
 
-            return Ok(new
+             return Ok(new ApiResponse<object>
             {
-                message = "Payment verified successfully. Status updated to Paid."
+                Success = true,
+                Message = "Payment verified successfully. Status updated to Paid."
             });
         }
     }
