@@ -50,6 +50,44 @@ public class BookingController : ControllerBase
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
     // StartBooking and CompleteBooking follow the exact same pattern
+    //
+    [HttpPut("{id}/start")]
+    [Authorize(Roles = "Provider")]
+    public async Task<IActionResult> StartBooking(int id)
+    {
+        try
+        {
+            var result = await _bookingService.StartBookingAsync(id);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+    //
+    [HttpPut("{id}/complete")]
+    [Authorize(Roles = "Provider")]
+    public async Task<IActionResult> CompleteBooking(int id)
+    {
+        try
+        {
+            var result = await _bookingService.CompleteBookingAsync(id);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    } 
 
     [HttpPut("{id}/cancel")]
     [Authorize(Roles = "Customer,Provider")]  // either party can cancel
