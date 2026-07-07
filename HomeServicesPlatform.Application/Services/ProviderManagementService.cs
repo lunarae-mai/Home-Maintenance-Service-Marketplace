@@ -186,6 +186,15 @@ namespace HomeServicesPlatform.Application.Services
             }
         }
 
+        public async Task<IEnumerable<ProviderProfile>> GetPendingProvidersAsync()
+        {
+            return await _context.ProviderProfiles
+                .Where(p =>
+                    p.Status == ProviderStatus.PendingApproval)
+                .Include(p => p.ProviderServices)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<ProviderSearchResultDto>> SearchProvidersByServiceAsync(int serviceId)
 {
     return await _context.ProviderServices

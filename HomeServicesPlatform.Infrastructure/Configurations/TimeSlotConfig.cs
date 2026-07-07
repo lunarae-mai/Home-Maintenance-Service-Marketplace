@@ -10,6 +10,11 @@ namespace HomeServicesPlatform.Infrastructure.Configurations
         {
             builder.HasIndex(t => new { t.ProviderId, t.Date, t.StartTime })
                    .IsUnique();
+
+// Concurrency token / slot engine/ s3
+            builder.Property(t => t.RowVersion)
+                    .IsRowVersion()
+                    .IsConcurrencyToken();
         }
     }
 }

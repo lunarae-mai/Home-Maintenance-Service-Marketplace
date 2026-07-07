@@ -22,6 +22,49 @@ namespace HomeServicesPlatform.Application.Services
 
         public async Task<BookingResponseDto> CreateBookingAsync(string customerId, CreateBookingDto dto)
         {
+            //concurrency / slot engine / s3
+            var slot = await _context.TimeSlots.FindAsync(dto.SlotId);
+
+            if (slot == null)
+                throw new KeyNotFoundException("Time slot not found.");
+
+            if (slot.ProviderId != dto.ProviderId)
+                throw new InvalidOperationException("The selected slot does not belong to this provider.");
+
+            if (slot.IsBooked)
+                throw new InvalidOperationException("This time slot is already booked. Please choose another slot.");
+
+            if (slot.Date < DateTime.Today || (slot.Date == DateTime.Today && slot.StartTime < DateTime.Now.TimeOfDay))
+                throw new InvalidOperationException("This time slot has already passed and cannot be booked.");
+
+            slot.IsBooked = true;
+            _context.TimeSlots.Update(slot);
+
+            var booking = new Booking
+            {
+                CustomerId = customerId,
+                ProviderId = dto.ProviderId,
+                ServiceId = dto.ServiceId,
+                SlotId = dto.SlotId,
+                Notes = dto.Notes,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _bookingRepository.AddAsync(booking);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "This time slot was just booked by someone else. Please choose a different slot.");
+            }
+
+            return MapToDto(booking);
+            /*
             // check the slot is free or not
             bool slotTaken = await _bookingRepository.IsSlotAlreadyBookedAsync(dto.SlotId);
             if (slotTaken)
@@ -56,7 +99,9 @@ namespace HomeServicesPlatform.Application.Services
             await _context.SaveChangesAsync();
 
             return MapToDto(booking);
+        */
         }
+        
 
         // Pending → Confirmed  (provider accepts the booking)
         public async Task<BookingResponseDto> ConfirmBookingAsync(int bookingId)
@@ -71,6 +116,27 @@ namespace HomeServicesPlatform.Application.Services
             return MapToDto(booking);
         }
 
+// Pending → Rejected  (provider declines the booking and frees the slot)
+        public async Task<BookingResponseDto> RejectBookingAsync(int bookingId)
+        {
+            var booking = await GetBookingOrThrowAsync(bookingId);
+            EnsureStatus(booking, BookingStatus.Pending, "reject");
+
+            booking.Status = BookingStatus.Rejected;
+            _bookingRepository.Update(booking);
+
+            // Free the slot so another customer can book it
+            var slot = await _context.TimeSlots.FindAsync(booking.SlotId);
+            if (slot != null)
+            {
+                slot.IsBooked = false;
+                _context.TimeSlots.Update(slot);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
         // Confirmed → In Progress  (work has started)
         public async Task<BookingResponseDto> StartBookingAsync(int bookingId)
         {
@@ -104,7 +170,8 @@ namespace HomeServicesPlatform.Application.Services
 
             // cant cancel once work has started
             if (booking.Status == BookingStatus.InProgress ||
-                booking.Status == BookingStatus.Completed)
+                booking.Status == BookingStatus.Completed ||
+                booking.Status == BookingStatus.Paid)
             {
                 throw new InvalidOperationException(
                     "Cancellation is only allowed before the booking is In Progress.");
@@ -241,6 +308,7 @@ namespace HomeServicesPlatform.Application.Services
 
             return bookings.Where(b =>
                 b.Status == BookingStatus.Completed ||
+                b.Status == BookingStatus.Paid ||
                 b.Status == BookingStatus.Cancelled);
         }
     }

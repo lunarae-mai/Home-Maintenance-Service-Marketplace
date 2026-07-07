@@ -13,6 +13,7 @@ namespace HomeServicesPlatform.Application.Interfaces
         Task<BookingResponseDto> StartBookingAsync(int bookingId);
         Task<BookingResponseDto> CompleteBookingAsync(int bookingId);
         Task<BookingResponseDto> CancelBookingAsync(int bookingId);
+        Task<BookingResponseDto> RejectBookingAsync(int bookingId); 
         Task<IEnumerable<BookingResponseDto>> GetMyBookingsAsync(string customerId);
         Task<IEnumerable<Booking>> GetCustomerActiveBookingsAsync(string customerId);
 
