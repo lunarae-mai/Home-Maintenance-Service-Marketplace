@@ -8,8 +8,16 @@ using HomeServicesPlatform.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using HomeServicesPlatform.API.Extensions;
+
 using System.Text;
+
+using System.Reflection;
+
 using HomeServicesPlatform.Application.DTOs.Booking;
+using HomeServicesPlatform.Application.Mappings;
+using HomeServicesPlatform.API.Extensions; 
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,7 +60,28 @@ builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+
+    options.IncludeXmlComments(
+        Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+    options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "JWT Authorization header using the Bearer scheme."
+    });
+
+    options.AddSecurityRequirement(document =>
+        new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("bearer", document)] = []
+        });
+});
 
 // Register Repositories
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -62,6 +91,10 @@ builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 // Register Provider Management Service
 builder.Services.AddScoped<IProviderManagementService, ProviderManagementService>();
 
+// Register Availability Service- mai
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+//slot sprint 2
+builder.Services.AddHostedService<HomeServicesPlatform.Infrastructure.BackgroundJobs.SlotGenerationBackgroundService>();
 
 // Register the HttpContextAccessor to enable accessing HTTP context outside controllers
 builder.Services.AddHttpContextAccessor();
@@ -74,7 +107,17 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 //booking
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+// Register the review service
+builder.Services.AddScoped<IReviewService, ReviewService>();
+
+
+ builder.Services.AddAutoMapper(typeof(MappingProfile));
+
 var app = builder.Build();
+
+// ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====
+// This must be FIRST in the pipeline to catch all exceptions
+app.UseGlobalExceptionHandling();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
@@ -94,6 +137,7 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<HomeServicesPlatform.Infrastructure.Data.AppDbContext>();
+    await context.Database.MigrateAsync();
     await HomeServicesPlatform.Infrastructure.Seed.DbSeeder.SeedData(context);
 }
 
