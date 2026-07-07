@@ -72,9 +72,76 @@ namespace HomeServicesPlatform.API.Controllers
         }
 
         /// <summary>
+        /// Adds a new service for the authenticated provider.
+        /// </summary>
+        [HttpPost("services")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> AddService([FromBody] ProviderServiceDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.AddProviderServiceAsync(userId, dto);
+
+            if (!result)
+                return BadRequest(new { message = "Failed to add service." });
+
+            return Ok(new { message = "Service added successfully." });
+        }
+
+
+        /// <summary>
+        /// Updates the authenticated provider's service.
+        /// </summary>
+        [HttpPut("services/{serviceId}")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> UpdateService(int serviceId,[FromBody] UpdateProviderServiceDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.UpdateProviderServiceAsync(userId,serviceId,dto);
+
+            if (!result)
+            {
+                return BadRequest(new { message = "Failed to update service."});
+            }
+
+            return Ok(new { message = "Service updated successfully." });
+        }
+
+
+        /// <summary>
+        /// Deletes one of the authenticated provider's services.
+        /// </summary>
+        [HttpDelete("services/{serviceId}")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> DeleteService(int serviceId)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var result = await _providerService.DeleteProviderServiceAsync(userId,serviceId);
+
+            if (!result)
+            {
+                return BadRequest(new { message = "Failed to delete service." });
+            }
+
+            return Ok(new { message = "Service deleted successfully." });
+        }
+
+
+
+        /// <summary>
         /// Retrieves the authenticated provider's profile.
         /// </summary>
-        /// <returns>The provider's profile information.</returns>
         [HttpGet("profile")]
         [Authorize(Roles = "Provider")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -112,47 +179,18 @@ namespace HomeServicesPlatform.API.Controllers
             });
         }
 
-        /// <summary>
-        /// Updates the approval status of a provider.
-        /// </summary>
-        /// <param name="providerId">The unique identifier of the provider.</param>
-        /// <param name="status">The new provider status.</param>
-        /// <returns>A confirmation that the provider status was updated.</returns>
-        [HttpPut("status")]
-        [Authorize(Roles = "Admin")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateStatus(int providerId, ProviderStatus status)
-        {
-            var result = await _providerService.UpdateProviderStatusAsync(providerId, status);
 
-            if (result)
-            {
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = $"The provider's account is now {status}."
-                });
-            }
-
-            return BadRequest(new ApiResponse<object>
-            {
-                Success = false,
-                Message = "Failed to update provider status.",
-                Errors = new List<string>
-                {
-                    "Check if the Provider ID is correct."
-                }
-            });
-        }
 
         /// <summary>
         /// Searches service providers using filtering and pagination.
         /// </summary>
         /// <param name="filter">
-        /// Search criteria including service ID, minimum rating, pricing type, page number, and page size.
+        /// Search criteria including service ID, minimum rating,
+        /// pricing type, page number, and page size.
         /// </param>
-        /// <returns>A paginated list of providers matching the specified criteria.</returns>
+        /// <returns>
+        /// A paginated list of providers matching the specified criteria.
+        /// </returns>
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -180,5 +218,6 @@ namespace HomeServicesPlatform.API.Controllers
                 Data = result
             });
         }
+    
     }
 }

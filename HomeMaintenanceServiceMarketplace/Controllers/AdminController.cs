@@ -36,6 +36,32 @@ namespace HomeServicesPlatform.API.Controllers
             });
         }
 
+
+        [HttpPut("providers/status")]
+        public async Task<IActionResult> UpdateStatus(int providerId, ProviderStatus status)
+        {
+            var result = await _providerService.UpdateProviderStatusAsync(providerId, status);
+
+            if (result)
+            {
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = $"The provider's account is now {status}."
+                });
+            }
+
+            return BadRequest(new ApiResponse<object>
+            {
+                Success = false,
+                Message = "Failed to update provider status.",
+                Errors = new List<string>
+                {
+                    "Check if the Provider ID is correct."
+                }
+            });
+        }
+
         [HttpPut("providers/{providerId}/approve")]
         public async Task<IActionResult> ApproveProvider(int providerId)
         {
