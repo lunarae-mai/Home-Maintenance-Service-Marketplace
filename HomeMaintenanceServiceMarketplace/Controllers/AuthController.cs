@@ -83,26 +83,14 @@ namespace HomeServicesPlatform.API.Controllers
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
         {
-            try
-            {
-                var result = await _authService.RefreshTokenAsync(dto);
+            var result = await _authService.RefreshTokenAsync(dto);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Token refreshed successfully.",
-                    Data = result
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<object>
             {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Failed to refresh token.",
-                    Errors = new List<string> { ex.Message }
-                });
-            }
+                Success = true,
+                Message = "Token refreshed successfully.",
+                Data = result
+            });
         }
 
     }

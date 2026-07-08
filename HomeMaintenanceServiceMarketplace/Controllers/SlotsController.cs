@@ -45,26 +45,14 @@ namespace HomeServicesPlatform.API.Controllers
                 });
             }
 
-            try
-            {
-                var result = await _availabilityService.SetWeeklyAvailabilityAsync(providerId.Value, dto);
+            var result = await _availabilityService.SetWeeklyAvailabilityAsync(providerId.Value, dto);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Availability updated successfully.",
-                    Data = result
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new ApiResponse<object>
             {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Failed to update availability.",
-                    Errors = new List<string> { ex.Message }
-                });
-            }
+                Success = true,
+                Message = "Availability updated successfully.",
+                Data = result
+            });
         }
 
         // GET api/slots/availability
@@ -117,29 +105,17 @@ namespace HomeServicesPlatform.API.Controllers
                 });
             }
 
-            try
-            {
-                var result = await _availabilityService.GenerateSlotsAsync(
-                    providerId.Value,
-                    DateTime.Today,
-                    daysAhead);
+            var result = await _availabilityService.GenerateSlotsAsync(
+                providerId.Value,
+                DateTime.Today,
+                daysAhead);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Time slots generated successfully.",
-                    Data = result
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new ApiResponse<object>
             {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Failed to generate time slots.",
-                    Errors = new List<string> { ex.Message }
-                });
-            }
+                Success = true,
+                Message = "Time slots generated successfully.",
+                Data = result
+            });
         }
 
         // GET api/slots/{providerId}?date=2026-07-01

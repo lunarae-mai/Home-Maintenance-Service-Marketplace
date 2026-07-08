@@ -1,13 +1,13 @@
-//concurrency / slot engine / s3
-
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace HomeServicesPlatform.Infrastructure.Migrations
 {
+    /// <inheritdoc />
     public partial class AddRowVersionToTimeSlot : Migration
     {
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<byte[]>(
@@ -19,6 +19,7 @@ namespace HomeServicesPlatform.Infrastructure.Migrations
                 defaultValue: new byte[0]);
         }
 
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

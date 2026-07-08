@@ -4,8 +4,6 @@ using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Domain.Enums;
 using HomeServicesPlatform.Infrastructure.Data; 
 using Microsoft.EntityFrameworkCore;
-using HomeServicesPlatform.Domain.Enums;
-
 
 namespace HomeServicesPlatform.Infrastructure.Services
 {

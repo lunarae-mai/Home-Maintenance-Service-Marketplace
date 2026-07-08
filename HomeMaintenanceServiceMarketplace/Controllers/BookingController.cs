@@ -45,35 +45,14 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
         });
     }
 
-    try
-    {
-        var result = await _bookingService.CreateBookingAsync(customerId, dto);
+    var result = await _bookingService.CreateBookingAsync(customerId, dto);
 
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Message = "Booking created successfully.",
-            Data = result
-        });
-    }
-    catch (InvalidOperationException ex)
+    return Ok(new ApiResponse<object>
     {
-        return Conflict(new ApiResponse<object>
-        {
-            Success = false,
-            Message = "Booking could not be created.",
-            Errors = new List<string> { ex.Message }
-        });
-    }
-    catch (KeyNotFoundException ex)
-    {
-        return NotFound(new ApiResponse<object>
-        {
-            Success = false,
-            Message = "Resource not found.",
-            Errors = new List<string> { ex.Message }
-        });
-    }
+        Success = true,
+        Message = "Booking created successfully.",
+        Data = result
+    });
 }
 
 
@@ -81,13 +60,8 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
     [Authorize(Roles = "Provider")]   
     public async Task<IActionResult> ConfirmBooking(int id)
     {
-        try
-        {
-            var result = await _bookingService.ConfirmBookingAsync(id);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        var result = await _bookingService.ConfirmBookingAsync(id);
+        return Ok(result);
     }
 
     // StartBooking and CompleteBooking follow the exact same pattern
@@ -96,38 +70,16 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
     [Authorize(Roles = "Provider")]
     public async Task<IActionResult> StartBooking(int id)
     {
-        try
-        {
-            var result = await _bookingService.StartBookingAsync(id);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await _bookingService.StartBookingAsync(id);
+        return Ok(result);
     }
     //
     [HttpPut("{id}/complete")]
     [Authorize(Roles = "Provider")]
     public async Task<IActionResult> CompleteBooking(int id)
     {
-        try
-        {
-            var result = await _bookingService.CompleteBookingAsync(id);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await _bookingService.CompleteBookingAsync(id);
+        return Ok(result);
     } 
 
     
@@ -136,13 +88,8 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
     [Authorize(Roles = "Provider")]
     public async Task<IActionResult> RejectBooking(int id)
     {
-        try
-        {
-            var result = await _bookingService.RejectBookingAsync(id);
-            return Ok(result);
-        }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        var result = await _bookingService.RejectBookingAsync(id);
+        return Ok(result);
     }
 /// <summary>
 /// Cancels an existing booking.
@@ -156,35 +103,14 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
 [Authorize(Roles = "Customer,Provider")]
 public async Task<IActionResult> CancelBooking(int id)
 {
-    try
-    {
-        var result = await _bookingService.CancelBookingAsync(id);
+    var result = await _bookingService.CancelBookingAsync(id);
 
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Message = "Booking cancelled successfully.",
-            Data = result
-        });
-    }
-    catch (InvalidOperationException ex)
+    return Ok(new ApiResponse<object>
     {
-        return BadRequest(new ApiResponse<object>
-        {
-            Success = false,
-            Message = "Unable to cancel booking.",
-            Errors = new List<string> { ex.Message }
-        });
-    }
-    catch (KeyNotFoundException ex)
-    {
-        return NotFound(new ApiResponse<object>
-        {
-            Success = false,
-            Message = "Booking not found.",
-            Errors = new List<string> { ex.Message }
-        });
-    }
+        Success = true,
+        Message = "Booking cancelled successfully.",
+        Data = result
+    });
 }
 
 /// <summary>

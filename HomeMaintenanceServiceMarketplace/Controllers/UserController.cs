@@ -87,34 +87,22 @@ namespace HomeServicesPlatform.API.Controllers
                 });
             }
 
-            try
-            {
-                var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+            var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
 
-                if (!result)
-                {
-                    return BadRequest(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "Profile update failed."
-                    });
-                }
-
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Profile updated successfully."
-                });
-            }
-            catch (Exception ex)
+            if (!result)
             {
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Profile update failed.",
-                    Errors = new List<string> { ex.Message }
+                    Message = "Profile update failed."
                 });
             }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Profile updated successfully."
+            });
         }
 
         /// <summary>
@@ -139,25 +127,13 @@ namespace HomeServicesPlatform.API.Controllers
                 });
             }
 
-            try
-            {
-                await _profileManagementService.ChangePasswordAsync(userId, dto);
+            await _profileManagementService.ChangePasswordAsync(userId, dto);
 
-                return Ok(new ApiResponse<object>
-                {
-                    Success = true,
-                    Message = "Password updated successfully."
-                });
-            }
-            catch (Exception ex)
+            return Ok(new ApiResponse<object>
             {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Password update failed.",
-                    Errors = new List<string> { ex.Message }
-                });
-            }
+                Success = true,
+                Message = "Password updated successfully."
+            });
         }
 
         /// <summary>
