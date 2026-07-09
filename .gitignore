@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Logs
 logs
 *.log
@@ -30,3 +31,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+=======
+# Visual Studio
+.vs/
+
+# Build folders
+bin/
+obj/
+
+# User files
+*.user
+*.suo
+
+# Logs
+*.log
+
+# Environment files
+appsettings.Development.json
+>>>>>>> 005077912eb52ad5dcf63d9baae3c2c5ac3cacc6
