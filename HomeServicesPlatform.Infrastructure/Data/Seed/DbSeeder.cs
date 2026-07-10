@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Infrastructure.Data;
+using HomeServicesPlatform.Infrastructure.Data;
 using HomeServicesPlatform.Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using System.Linq;
@@ -70,31 +70,42 @@ namespace HomeServicesPlatform.Infrastructure.Seed
                 await context.SaveChangesAsync();
             }
 
-            // Seed Default Admin Account
-            if (!context.ApplicationUsers.Any(u => u.Role == "Admin"))
+            // Seed Requested Admin Accounts
+            var adminEmails = new[]
             {
-                var hasher = new PasswordHasher<ApplicationUser>();
+                "adhamshaheen282@gmail.com",
+                "maimaged357@gmail.com",
+                "malak.mohamed141azmy@gmail.com",
+                "mariam22khalid22@gmail.com",
+                "nada.baki54@gmail.com",
+                "ffathy2244@gmail.com"
+            };
 
-                var adminUser = new ApplicationUser
+            foreach (var email in adminEmails)
+            {
+                if (!context.ApplicationUsers.Any(u => u.Email == email))
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = "System Admin",
-                    Email = "admin@homeservices.com",
-                    Phone = "+1234567890",
-                    Role = "Admin",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    var hasher = new PasswordHasher<ApplicationUser>();
 
-                // Hash the default password: Admin@123
-                adminUser.PasswordHash = hasher.HashPassword(adminUser, "Admin@123");
+                    var adminUser = new ApplicationUser
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Name = email.Split('@')[0],
+                        Email = email,
+                        Phone = "+1234567890",
+                        Role = "Admin",
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                // Generate refresh token
-                adminUser.RefreshToken = GenerateRefreshToken();
-                adminUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+                    adminUser.PasswordHash = hasher.HashPassword(adminUser, "12345abcd");
 
-                await context.ApplicationUsers.AddAsync(adminUser);
-                await context.SaveChangesAsync();
+                    adminUser.RefreshToken = GenerateRefreshToken();
+                    adminUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+                    await context.ApplicationUsers.AddAsync(adminUser);
+                }
             }
+            await context.SaveChangesAsync();
         }
 
         private static string GenerateRefreshToken()

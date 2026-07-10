@@ -64,7 +64,7 @@ export function TopNav() {
             <Palette className="h-4 w-4" style={{ color: palette === 'purple' ? '#8B5CF6' : palette === 'cyan' ? '#06B6D4' : '#10B981' }} />
           </button>
           <Link
-            to="/admin/login"
+            to="/auth"
             className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-primary to-cyan-accent text-primary-foreground"
           >
             <User className="h-4 w-4" />
