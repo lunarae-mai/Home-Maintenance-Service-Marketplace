@@ -70,6 +70,49 @@ namespace HomeServicesPlatform.Infrastructure.Seed
                 await context.SaveChangesAsync();
             }
 
+            // Seed Services
+            if (!context.Services.Any())
+            {
+                var categories = context.ServiceCategories.ToList();
+                var services = new List<Service>();
+
+                var catHomeMaintenance = categories.FirstOrDefault(c => c.Name == "Home Maintenance");
+                if (catHomeMaintenance != null)
+                {
+                    services.Add(new Service { Name = "General Repair", Duration = 60, PriceModel = "Hourly", ServiceCategoryId = catHomeMaintenance.Id });
+                    services.Add(new Service { Name = "Furniture Assembly", Duration = 90, PriceModel = "Fixed", ServiceCategoryId = catHomeMaintenance.Id });
+                }
+
+                var catPlumbing = categories.FirstOrDefault(c => c.Name == "Plumbing");
+                if (catPlumbing != null)
+                {
+                    services.Add(new Service { Name = "Leak Repair", Duration = 45, PriceModel = "Hourly", ServiceCategoryId = catPlumbing.Id });
+                    services.Add(new Service { Name = "Drain Cleaning", Duration = 60, PriceModel = "Fixed", ServiceCategoryId = catPlumbing.Id });
+                }
+
+                var catElectrical = categories.FirstOrDefault(c => c.Name == "Electrical");
+                if (catElectrical != null)
+                {
+                    services.Add(new Service { Name = "Outlet Installation", Duration = 30, PriceModel = "Fixed", ServiceCategoryId = catElectrical.Id });
+                    services.Add(new Service { Name = "Light Fixture Replacement", Duration = 60, PriceModel = "Hourly", ServiceCategoryId = catElectrical.Id });
+                }
+
+                var catPainting = categories.FirstOrDefault(c => c.Name == "Painting");
+                if (catPainting != null)
+                {
+                    services.Add(new Service { Name = "Room Wall Painting", Duration = 180, PriceModel = "Fixed", ServiceCategoryId = catPainting.Id });
+                }
+
+                var catCleaning = categories.FirstOrDefault(c => c.Name == "Cleaning");
+                if (catCleaning != null)
+                {
+                    services.Add(new Service { Name = "Deep House Cleaning", Duration = 240, PriceModel = "Fixed", ServiceCategoryId = catCleaning.Id });
+                }
+
+                await context.Services.AddRangeAsync(services);
+                await context.SaveChangesAsync();
+            }
+
             // Seed Requested Admin Accounts
             var adminEmails = new[]
             {

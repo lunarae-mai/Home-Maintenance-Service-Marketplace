@@ -1,25 +1,35 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
+using System.Reflection;
+using System.Text;
+using HomeServicesPlatform.API.Extensions;
+using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Interfaces;
+using HomeServicesPlatform.Application.Mappings;
 using HomeServicesPlatform.Application.Services;
 using HomeServicesPlatform.Application.Services.Auth;
 using HomeServicesPlatform.Application.Services.CurrentUser;
 using HomeServicesPlatform.Application.Services.ProfileManagement;
 using HomeServicesPlatform.Infrastructure.Data;
 using HomeServicesPlatform.Infrastructure.Repositories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using HomeServicesPlatform.API.Extensions;
-
-using System.Text;
-
-using System.Reflection;
-
-using HomeServicesPlatform.Application.DTOs.Booking;
-using HomeServicesPlatform.Application.Mappings;
-using HomeServicesPlatform.API.Extensions; 
-using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ===== CONFIGURING CORS POLICY =====
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddDbContext<HomeServicesPlatform.Infrastructure.Data.AppDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -48,19 +58,21 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["JWT:Audience"],
 
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"]))
+            Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
+
+        NameClaimType = System.Security.Claims.ClaimTypes.Name,
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role
     };
 });
 
 builder.Services.AddAuthorization();
-
 builder.Services.AddControllers();
+
 // Register Payment Service
 builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.Services.PaymentService>();
 
 // Add Swagger
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -93,6 +105,7 @@ builder.Services.AddScoped<IProviderManagementService, ProviderManagementService
 
 // Register Availability Service- mai
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+
 //slot sprint 2
 builder.Services.AddHostedService<HomeServicesPlatform.Infrastructure.BackgroundJobs.SlotGenerationBackgroundService>();
 
@@ -101,7 +114,6 @@ builder.Services.AddHttpContextAccessor();
 
 // Register the current user service with a scoped lifetime
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-
 builder.Services.AddScoped<IServiceService, ServiceService>();
 
 //booking
@@ -110,10 +122,7 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 // Register the review service
 builder.Services.AddScoped<IReviewService, ReviewService>();
 
-
- builder.Services.AddAutoMapper(typeof(MappingProfile));
-
-builder.Services.AddCors();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 var app = builder.Build();
 
@@ -121,9 +130,11 @@ var app = builder.Build();
 // This must be FIRST in the pipeline to catch all exceptions
 app.UseGlobalExceptionHandling();
 
-// Configure the HTTP request pipeline.
-app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+// ===== ACTIVATE CORS POLICY =====
 app.UseRouting();
+
+// Configure the HTTP request pipeline.
+app.UseCors("AllowFrontend");
 
 // Add Authentication and Authorization middleware
 app.UseAuthentication();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -34,7 +34,7 @@ namespace HomeServicesPlatform.Application.Services.Auth
                  .FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (existingUser != null)
-                throw new Exception("User already exists");
+                throw new ArgumentException("User already exists");
 
             var user = new ApplicationUser
             {
@@ -74,7 +74,7 @@ namespace HomeServicesPlatform.Application.Services.Auth
                 .FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (user == null)
-                throw new Exception("Invalid email or password");
+                throw new UnauthorizedAccessException("Invalid email or password");
 
             var hasher = new PasswordHasher<ApplicationUser>();
 
@@ -85,7 +85,7 @@ namespace HomeServicesPlatform.Application.Services.Auth
             );
 
             if (result == PasswordVerificationResult.Failed)
-                throw new Exception("Invalid email or password");
+                throw new UnauthorizedAccessException("Invalid email or password");
 
             // Generate and assign refresh token 
             var newRefreshToken = GenerateRefreshToken();
@@ -110,7 +110,7 @@ namespace HomeServicesPlatform.Application.Services.Auth
         public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto dto)
         {
             if (dto == null || string.IsNullOrEmpty(dto.RefreshToken))
-                throw new Exception("Invalid client request");
+                throw new ArgumentException("Invalid client request");
 
             // 1. Get the user from database who owns this refresh token
             var user = await _context.ApplicationUsers
@@ -118,11 +118,11 @@ namespace HomeServicesPlatform.Application.Services.Auth
 
             // 2. Validate if user exists
             if (user == null)
-                throw new Exception("Invalid refresh token");
+                throw new UnauthorizedAccessException("Invalid refresh token");
 
             // 3. Validate if the refresh token has expired
             if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
-                throw new Exception("Refresh token has expired, please login again");
+                throw new UnauthorizedAccessException("Refresh token has expired, please login again");
 
             // 4. Everything is valid! Generate brand new tokens
             var newAccessToken = GenerateJwtToken(user);

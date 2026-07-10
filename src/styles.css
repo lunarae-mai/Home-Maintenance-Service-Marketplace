@@ -109,3 +109,19 @@
   --color-ring: oklch(0.7 0.18 155);
   --color-sidebar-primary: oklch(0.7 0.18 155);
 }
+
+/* Hide native Edge password reveal and clear buttons to avoid duplication with custom React toggle */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
+/* Override browser autofill backgrounds to keep them black with white text */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #000000 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
