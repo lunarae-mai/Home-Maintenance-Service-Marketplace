@@ -30,16 +30,18 @@ function ProvidersList() {
       try {
         const res = await api.get(`/Providers/search?serviceId=${serviceId}`);
         if (res.data.success) {
-          setProviders(res.data.data.items.map((p: any) => ({
-            id: p.providerId.toString(),
-            name: p.providerName,
-            serviceId: serviceId,
-            rating: p.avgRating,
-            bio: p.bio,
-            hourly: p.basePrice,
-            expertise: [],
-            description: p.bio
-          })));
+          setProviders(
+            res.data.data.items.map((p: any) => ({
+              id: p.providerId.toString(),
+              name: p.providerName,
+              serviceId: serviceId,
+              rating: p.avgRating,
+              bio: p.bio,
+              hourly: p.basePrice,
+              expertise: [],
+              description: p.bio,
+            })),
+          );
         }
       } catch (err) {
         console.error("Failed to fetch dynamic providers.", err);
@@ -53,7 +55,9 @@ function ProvidersList() {
       <TopNav />
       <main className="mx-auto max-w-7xl px-6 py-10">
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Link to="/" className="hover:text-foreground">Marketplace</Link>
+          <Link to="/" className="hover:text-foreground">
+            Marketplace
+          </Link>
           <ChevronRight className="h-4 w-4" />
           <span className="text-foreground">{service?.name ?? serviceId}</span>
         </nav>
@@ -62,7 +66,8 @@ function ProvidersList() {
           Providers for <span className="text-primary">{service?.name ?? serviceId}</span>
         </h1>
         <p className="mt-2 text-muted-foreground">
-          {providers.length} vetted specialist{providers.length === 1 ? "" : "s"} available near you.
+          {providers.length} vetted specialist{providers.length === 1 ? "" : "s"} available near
+          you.
         </p>
 
         {providers.length === 0 ? (
@@ -72,7 +77,10 @@ function ProvidersList() {
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {providers.map((p) => (
-              <div key={p.id} className="flex flex-col rounded-2xl border border-border bg-surface-elevated p-5">
+              <div
+                key={p.id}
+                className="flex flex-col rounded-2xl border border-border bg-surface-elevated p-5"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-lg font-semibold tracking-tight">{p.name}</h3>
                   <div className="flex shrink-0 items-center gap-1 rounded-md bg-cyan-accent/10 px-2 py-1 text-sm font-semibold text-cyan-accent">
@@ -86,14 +94,21 @@ function ProvidersList() {
                 </p>
                 <div className="mt-5 grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => navigate({ to: "/providers/$providerId/book", params: { providerId: p.id }, search: { serviceId, name: p.name, price: p.hourly, rating: p.rating } })}
+                    onClick={() =>
+                      navigate({
+                        to: "/providers/$providerId/book",
+                        params: { providerId: p.id },
+                        search: { serviceId, name: p.name, price: p.hourly, rating: p.rating },
+                      })
+                    }
                     className="rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow shadow-primary/20 hover:brightness-110"
                   >
                     Book Now
                   </button>
                   <Link
                     to="/providers/$providerId/book"
-                    params={{ providerId: p.id }} search={{ serviceId, name: p.name, price: p.hourly, rating: p.rating }}
+                    params={{ providerId: p.id }}
+                    search={{ serviceId, name: p.name, price: p.hourly, rating: p.rating }}
                     className="rounded-lg border border-border py-2.5 text-center text-sm font-semibold text-muted-foreground hover:border-foreground hover:text-foreground"
                   >
                     View Profile
@@ -107,4 +122,3 @@ function ProvidersList() {
     </div>
   );
 }
-

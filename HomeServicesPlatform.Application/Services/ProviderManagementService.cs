@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Domain.Models;
+using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
@@ -165,8 +165,14 @@ namespace HomeServicesPlatform.Application.Services
                     .Where(p => p.UserId == userId)
                     .Select(p => new RegisterProviderDto
                     {
+                        Id = p.Id,
+                        Name = p.User.Name,
+                        Email = p.User.Email,
+                        Phone = p.User.Phone,
                         Bio = p.Bio,
                         Experience = p.Experience,
+                        Status = p.Status.ToString(),
+                        IsApproved = p.IsApproved,
                         // Select inner services and map to DTOs
                         Services = p.ProviderServices.Select(ps => new ProviderServiceDto
                         {

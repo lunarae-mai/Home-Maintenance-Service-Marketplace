@@ -1,9 +1,10 @@
-﻿using HomeServicesPlatform.Application.DTOs.Common;
+using HomeServicesPlatform.Application.DTOs.Common;
 using HomeServicesPlatform.Application.DTOs.Provider;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace HomeServicesPlatform.API.Controllers
 {
@@ -17,13 +18,16 @@ namespace HomeServicesPlatform.API.Controllers
     {
         private readonly IProviderManagementService _providerService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IAppDbContext _context;
 
         public ProvidersController(
             IProviderManagementService providerService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IAppDbContext context)
         {
             _providerService = providerService;
             _currentUserService = currentUserService;
+            _context = context;
         }
 
         /// <summary>
@@ -219,6 +223,56 @@ namespace HomeServicesPlatform.API.Controllers
                 Data = result
             });
         }
-    
+
+        /// <summary>
+        /// Updates the authenticated provider's name and bio.
+        /// </summary>
+        [HttpPut("profile")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProviderProfileDto dto)
+        {
+            var userId = _currentUserService.UserId;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+            }
+
+            // 1. Update User Name
+            var user = await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "User not found."
+                });
+            }
+            user.Name = dto.Name;
+
+            // 2. Update Provider Profile Bio
+            var profile = await _context.ProviderProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+            if (profile != null)
+            {
+                profile.Bio = dto.Bio;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Profile updated successfully."
+            });
+        }
+    }
+
+    public class UpdateProviderProfileDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Bio { get; set; } = string.Empty;
     }
 }

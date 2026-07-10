@@ -15,24 +15,24 @@
 /* Dark = default per spec */
 :root {
   --radius: 0.75rem;
-  --color-background: oklch(0.16 0.03 270);       /* #090B11 */
+  --color-background: oklch(0.16 0.03 270); /* #090B11 */
   --color-foreground: oklch(1 0 0);
-  --color-surface: oklch(0.21 0.03 270);          /* #121622 */
+  --color-surface: oklch(0.21 0.03 270); /* #121622 */
   --color-surface-elevated: oklch(0.24 0.035 270); /* #161B2B */
   --color-card: oklch(0.24 0.035 270);
   --color-card-foreground: oklch(1 0 0);
   --color-popover: oklch(0.21 0.03 270);
   --color-popover-foreground: oklch(1 0 0);
-  --color-primary: oklch(0.63 0.22 300);          /* #8B5CF6 */
+  --color-primary: oklch(0.63 0.22 300); /* #8B5CF6 */
   --color-primary-foreground: oklch(1 0 0);
   --color-secondary: oklch(0.28 0.03 270);
   --color-secondary-foreground: oklch(1 0 0);
   --color-muted: oklch(0.28 0.03 270);
-  --color-muted-foreground: oklch(0.7 0.02 260);  /* #9CA3AF */
+  --color-muted-foreground: oklch(0.7 0.02 260); /* #9CA3AF */
   --color-accent: oklch(0.28 0.03 270);
   --color-accent-foreground: oklch(1 0 0);
-  --color-cyan-accent: oklch(0.75 0.14 210);      /* #06B6D4 */
-  --color-warning: oklch(0.68 0.16 55);           /* #D97706 */
+  --color-cyan-accent: oklch(0.75 0.14 210); /* #06B6D4 */
+  --color-warning: oklch(0.68 0.16 55); /* #D97706 */
   --color-success: oklch(0.7 0.18 155);
   --color-destructive: oklch(0.6 0.24 25);
   --color-destructive-foreground: oklch(1 0 0);
@@ -50,7 +50,7 @@
 }
 
 .light {
-  --color-background: oklch(0.985 0.005 260);     /* #F9FAFB */
+  --color-background: oklch(0.985 0.005 260); /* #F9FAFB */
   --color-foreground: oklch(0.2 0.03 270);
   --color-surface: oklch(1 0 0);
   --color-surface-elevated: oklch(1 0 0);
@@ -83,11 +83,19 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
   }
 }
 
@@ -102,6 +110,18 @@
   --color-sidebar-primary: oklch(0.7 0.18 155);
 }
 
+/* Hide native Edge password reveal and clear buttons to avoid duplication with custom React toggle */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
 
-
-
+/* Override browser autofill backgrounds to keep them black with white text */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #000000 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

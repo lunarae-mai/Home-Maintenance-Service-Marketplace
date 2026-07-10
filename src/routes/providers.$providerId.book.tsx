@@ -11,8 +11,8 @@ export const Route = createFileRoute("/providers/$providerId/book")({
     serviceId: z.string().or(z.number()).optional(),
     name: z.string().optional(),
     price: z.string().or(z.number()).optional(),
-    rating: z.string().or(z.number()).optional()
-  })
+    rating: z.string().or(z.number()).optional(),
+  }),
 });
 
 function BookingPage() {
@@ -26,7 +26,7 @@ function BookingPage() {
   useEffect(() => {
     const fetchSlots = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toISOString().split("T")[0];
         const res = await api.get(`/Slots/${providerId}?date=${today}`);
         if (res.data.success) {
           setSlots(res.data.data);
@@ -39,7 +39,7 @@ function BookingPage() {
   }, [providerId]);
 
   const price = Number(search.price) || 0;
-  const platformFee = Math.round(price * 0.10); // 10% commission per API docs
+  const platformFee = Math.round(price * 0.1); // 10% commission per API docs
   const total = price + platformFee;
 
   const handleCreateBooking = async () => {
@@ -52,7 +52,7 @@ function BookingPage() {
         providerId: Number(providerId),
         serviceId: Number(search.serviceId),
         slotId: selectedSlot.id,
-        notes: "Booking created via web"
+        notes: "Booking created via web",
       });
       alert("Booking confirmed successfully!");
       navigate({ to: "/" });
@@ -69,7 +69,9 @@ function BookingPage() {
       <main className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="mt-1 text-3xl font-bold uppercase tracking-tight">{search.name || "Provider"}</h1>
+            <h1 className="mt-1 text-3xl font-bold uppercase tracking-tight">
+              {search.name || "Provider"}
+            </h1>
             <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
               <Star className="h-4 w-4 fill-cyan-accent text-cyan-accent" />
               <span className="font-semibold text-foreground">{search.rating || 0}</span>
@@ -77,7 +79,10 @@ function BookingPage() {
           </div>
           <div className="text-right">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Starting at</p>
-            <p className="text-3xl font-bold text-primary">${price}<span className="text-base text-muted-foreground"> / hr</span></p>
+            <p className="text-3xl font-bold text-primary">
+              ${price}
+              <span className="text-base text-muted-foreground"> / hr</span>
+            </p>
           </div>
         </div>
 
@@ -87,7 +92,9 @@ function BookingPage() {
               <h2 className="text-lg font-semibold">Available Slots Today</h2>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {slots.length === 0 ? (
-                   <p className="text-sm text-muted-foreground col-span-3">No slots available today.</p>
+                  <p className="text-sm text-muted-foreground col-span-3">
+                    No slots available today.
+                  </p>
                 ) : (
                   slots.map((s) => (
                     <button
@@ -108,7 +115,9 @@ function BookingPage() {
           </div>
 
           <aside className="h-fit rounded-2xl border border-border bg-surface-elevated p-6 lg:sticky lg:top-24">
-            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Booking Summary</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              Booking Summary
+            </h3>
             <div className="mt-6 space-y-1.5 border-t border-border pt-4 text-sm">
               <Row label="Service fee" value={`$${price}.00`} />
               <Row label="Platform maintenance fee" value={`$${platformFee}.00`} />
@@ -132,7 +141,9 @@ function BookingPage() {
 
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
-    <div className={`flex items-center justify-between ${bold ? "font-bold" : "text-muted-foreground"}`}>
+    <div
+      className={`flex items-center justify-between ${bold ? "font-bold" : "text-muted-foreground"}`}
+    >
       <span>{label}</span>
       <span className={bold ? "text-foreground" : ""}>{value}</span>
     </div>
