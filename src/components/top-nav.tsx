@@ -8,7 +8,6 @@ const links = [
   { to: "/admin/login" as const, label: "Admin" },
 ];
 
-
 export function TopNav() {
   const { theme, toggle, palette, setPalette } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -61,7 +60,13 @@ export function TopNav() {
             aria-label="Cycle Palette"
             className="grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
           >
-            <Palette className="h-4 w-4" style={{ color: palette === 'purple' ? '#8B5CF6' : palette === 'cyan' ? '#06B6D4' : '#10B981' }} />
+            <Palette
+              className="h-4 w-4"
+              style={{
+                color:
+                  palette === "purple" ? "#8B5CF6" : palette === "cyan" ? "#06B6D4" : "#10B981",
+              }}
+            />
           </button>
           <Link
             to="/auth"

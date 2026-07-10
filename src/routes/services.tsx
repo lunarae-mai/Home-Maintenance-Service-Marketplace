@@ -28,16 +28,18 @@ function Marketplace() {
         if (catsRes.data.success) {
           setCategories(catsRes.data.data.map((c: any) => c.name));
         }
-        
+
         const srvsRes = await api.get("/Service/search?pageSize=100");
         if (srvsRes.data.success) {
-          setServices(srvsRes.data.data.items.map((s: any) => ({
-            id: s.id.toString(),
-            category: s.categoryName,
-            name: s.name,
-            description: s.description || "Professional service.",
-            icon: Wrench
-          })));
+          setServices(
+            srvsRes.data.data.items.map((s: any) => ({
+              id: s.id.toString(),
+              category: s.categoryName,
+              name: s.name,
+              description: s.description || "Professional service.",
+              icon: Wrench,
+            })),
+          );
         }
       } catch (err) {
         console.error("API failed. Cannot load services without backend.", err);
@@ -60,20 +62,30 @@ function Marketplace() {
 
       <main className="mx-auto max-w-7xl px-6 py-10">
         <div className="mb-10">
-          <p className="text-xs font-medium uppercase tracking-widest text-cyan-accent">Marketplace</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight">All services, one trusted network</h1>
+          <p className="text-xs font-medium uppercase tracking-widest text-cyan-accent">
+            Marketplace
+          </p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight">
+            All services, one trusted network
+          </h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Browse vetted specialists across plumbing, electrical, cleaning, painting, and more. Book in minutes.
+            Browse vetted specialists across plumbing, electrical, cleaning, painting, and more.
+            Book in minutes.
           </p>
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
           {/* Filter sidebar */}
           <aside className="h-fit rounded-2xl border border-border bg-surface p-5">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Categories</h3>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Categories
+            </h3>
             <div className="space-y-2">
               {categories.map((c) => (
-                <label key={c} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-background">
+                <label
+                  key={c}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-background"
+                >
                   <input
                     type="checkbox"
                     checked={selected.includes(c)}
@@ -87,7 +99,9 @@ function Marketplace() {
 
             <div className="my-5 h-px bg-border" />
 
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Availability</h3>
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Availability
+            </h3>
             <div className="space-y-2">
               {[
                 { v: "any", l: "Any time" },
@@ -95,7 +109,10 @@ function Marketplace() {
                 { v: "week", l: "This week" },
                 { v: "weekend", l: "Weekends" },
               ].map((o) => (
-                <label key={o.v} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-background">
+                <label
+                  key={o.v}
+                  className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-background"
+                >
                   <input
                     type="radio"
                     name="avail"
@@ -113,7 +130,8 @@ function Marketplace() {
           <section>
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                Showing <span className="font-semibold text-foreground">{filtered.length}</span> services
+                Showing <span className="font-semibold text-foreground">{filtered.length}</span>{" "}
+                services
               </p>
             </div>
 
@@ -134,7 +152,9 @@ function Marketplace() {
                       </div>
                     </div>
                     <h3 className="mt-4 text-lg font-semibold tracking-tight">{s.name}</h3>
-                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">{s.description}</p>
+                    <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+                      {s.description}
+                    </p>
                     <Link
                       to="/providers/$serviceId"
                       params={{ serviceId: s.id }}

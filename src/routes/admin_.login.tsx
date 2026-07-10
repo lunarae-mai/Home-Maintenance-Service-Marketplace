@@ -19,7 +19,7 @@ function AdminLogin() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-    
+
     try {
       // In a real scenario this might be a specialized admin endpoint
       // Using standard login with role check
@@ -34,21 +34,22 @@ function AdminLogin() {
       }
     } catch (err: any) {
       console.error(err);
-      
+
       // Fallback for simulation purposes if backend is down
       if (
-        (email === "admin@example.com" && password === "admin") || 
-        email === "ffathy2244@gmail.com" || 
+        (email === "admin@example.com" && password === "admin") ||
+        email === "ffathy2244@gmail.com" ||
         password === "admin"
       ) {
-         // Simulate successful admin login
-         localStorage.setItem("accessToken", "simulated_admin_token");
-         localStorage.setItem("userEmail", email || "admin@homeservices.com");
-         navigate({ to: "/admin" });
-         return;
+        // Simulate successful admin login
+        localStorage.setItem("accessToken", "simulated_admin_token");
+        localStorage.setItem("userEmail", email || "admin@homeservices.com");
+        navigate({ to: "/admin" });
+        return;
       }
-      
-      const errorMessage = err.response?.data?.message || "Authentication failed. Check your credentials.";
+
+      const errorMessage =
+        err.response?.data?.message || "Authentication failed. Check your credentials.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -58,17 +59,20 @@ function AdminLogin() {
   return (
     <div className="relative min-h-screen bg-[#09090b] text-slate-200 font-sans selection:bg-purple-500/30 flex flex-col">
       <TopNav />
-      
+
       {/* Dynamic Background matching admin dashboard */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] animate-pulse" style={{ animationDelay: "2s" }} />
+        <div
+          className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px] animate-pulse"
+          style={{ animationDelay: "2s" }}
+        />
       </div>
 
       <div className="relative z-10 flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
           <div className="h-2 w-full bg-gradient-to-r from-purple-500 via-indigo-500 to-cyan-500" />
-          
+
           <div className="p-8 sm:p-10">
             <div className="mb-8 flex flex-col items-center text-center">
               <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 text-cyan-400 border border-white/5 shadow-lg shadow-purple-500/10">
@@ -87,7 +91,9 @@ function AdminLogin() {
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Email Address</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   required
@@ -98,7 +104,9 @@ function AdminLogin() {
                 />
               </div>
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">Password</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Password
+                </label>
                 <input
                   type="password"
                   required
@@ -114,11 +122,7 @@ function AdminLogin() {
                 className="group relative mt-8 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 py-3.5 font-bold text-white shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-cyan-500/40 disabled:opacity-70 disabled:hover:scale-100"
               >
                 <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  "Authenticate"
-                )}
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Authenticate"}
               </button>
             </form>
           </div>

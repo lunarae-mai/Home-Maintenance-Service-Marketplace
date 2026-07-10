@@ -1,6 +1,7 @@
 # Home Maintenance Service Marketplace - API Documentation
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Getting Started](#getting-started)
 3. [Authentication](#authentication)
@@ -26,6 +27,7 @@ This is a digital platform that connects homeowners who need maintenance service
 
 **For Technical Users:**
 A RESTful API built with ASP.NET Core implementing Clean Architecture principles, featuring:
+
 - JWT-based authentication with refresh tokens
 - Role-based authorization (Customer, Provider, Admin)
 - Entity Framework Core with SQL Server
@@ -34,6 +36,7 @@ A RESTful API built with ASP.NET Core implementing Clean Architecture principles
 - Commission-based payment processing
 
 ### Key Features
+
 - ✅ User registration and authentication
 - ✅ Service provider approval workflow
 - ✅ Service catalog with categories
@@ -44,11 +47,13 @@ A RESTful API built with ASP.NET Core implementing Clean Architecture principles
 - ✅ Admin dashboard for provider management
 
 ### Base URL
+
 ```
 http://localhost:5000/api
 ```
 
 ### Technology Stack
+
 - **Backend**: .NET 6/7/8, ASP.NET Core Web API
 - **Database**: SQL Server with Entity Framework Core
 - **Authentication**: JWT (JSON Web Tokens)
@@ -60,6 +65,7 @@ http://localhost:5000/api
 ## Getting Started
 
 ### Prerequisites
+
 - .NET SDK 6.0 or higher
 - SQL Server (LocalDB or Express Edition)
 - API testing tool (Postman, Insomnia, or curl)
@@ -67,13 +73,15 @@ http://localhost:5000/api
 ### Installation Steps
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/lunarae-mai/Home-Maintenance-Service-Marketplace.git
 cd Home-Maintenance-Service-Marketplace
 ```
 
 2. **Update database connection**
-Edit `HomeMaintenanceServiceMarketplace/appsettings.json`:
+   Edit `HomeMaintenanceServiceMarketplace/appsettings.json`:
+
 ```json
 {
   "ConnectionStrings": {
@@ -83,20 +91,23 @@ Edit `HomeMaintenanceServiceMarketplace/appsettings.json`:
 ```
 
 3. **Run migrations**
+
 ```bash
 cd HomeMaintenanceServiceMarketplace
 dotnet ef database update
 ```
 
 4. **Run the application**
+
 ```bash
 dotnet run
 ```
 
 5. **Access Swagger documentation**
-Open browser: `http://localhost:5000/swagger`
+   Open browser: `http://localhost:5000/swagger`
 
 ### Quick Test
+
 ```bash
 curl http://localhost:5000/api
 # Response: "Home Maintenance API is Running!"
@@ -115,6 +126,7 @@ Authentication is like showing your ID card to prove who you are. When you log i
 The API uses JWT (JSON Web Tokens) for stateless authentication. Each token is valid for 24 hours and contains user claims (ID, email, role). Refresh tokens (7-day validity) enable seamless token renewal without re-login.
 
 ### Authentication Flow
+
 1. Register → Get access token + refresh token
 2. Use access token in requests (Authorization header)
 3. When token expires → Use refresh token to get new access token
@@ -130,6 +142,7 @@ The API uses JWT (JSON Web Tokens) for stateless authentication. Each token is v
 Creates a new account on the platform. You choose whether you're a customer (someone who needs services) or a provider (someone who offers services).
 
 **Request Body:**
+
 ```json
 {
   "name": "John Doe",
@@ -141,6 +154,7 @@ Creates a new account on the platform. You choose whether you're a customer (som
 ```
 
 **Field Descriptions:**
+
 - `name`: Your full name
 - `email`: Must be unique, used for login
 - `password`: At least 8 characters, include letters and numbers
@@ -148,6 +162,7 @@ Creates a new account on the platform. You choose whether you're a customer (som
 - `role`: Choose one: `"Customer"`, `"Provider"`, or `"Admin"`
 
 **Success Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -164,6 +179,7 @@ Creates a new account on the platform. You choose whether you're a customer (som
 ```
 
 **Error Response (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -175,6 +191,7 @@ Creates a new account on the platform. You choose whether you're a customer (som
 ```
 
 **Example (cURL):**
+
 ```bash
 curl -X POST http://localhost:5000/api/Auth/register \
   -H "Content-Type: application/json" \
@@ -188,17 +205,18 @@ curl -X POST http://localhost:5000/api/Auth/register \
 ```
 
 **Example (JavaScript/Fetch):**
+
 ```javascript
-const response = await fetch('http://localhost:5000/api/Auth/register', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("http://localhost:5000/api/Auth/register", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    password: 'SecurePass123!',
-    phone: '+1234567890',
-    role: 'Customer'
-  })
+    name: "John Doe",
+    email: "john.doe@example.com",
+    password: "SecurePass123!",
+    phone: "+1234567890",
+    role: "Customer",
+  }),
 });
 const data = await response.json();
 console.log(data);
@@ -214,6 +232,7 @@ console.log(data);
 Log into your account using your email and password. You'll get a token that you need to save and use for making other requests.
 
 **Request Body:**
+
 ```json
 {
   "email": "john.doe@example.com",
@@ -222,6 +241,7 @@ Log into your account using your email and password. You'll get a token that you
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -236,6 +256,7 @@ Log into your account using your email and password. You'll get a token that you
 ```
 
 **Error Response (401 Unauthorized):**
+
 ```json
 {
   "success": false,
@@ -244,6 +265,7 @@ Log into your account using your email and password. You'll get a token that you
 ```
 
 **Example (cURL):**
+
 ```bash
 curl -X POST http://localhost:5000/api/Auth/login \
   -H "Content-Type: application/json" \
@@ -260,6 +282,7 @@ curl -X POST http://localhost:5000/api/Auth/login \
 Your login token expires after 24 hours. Instead of logging in again, you can use your refresh token to get a new access token automatically.
 
 **Request Body:**
+
 ```json
 {
   "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4="
@@ -267,6 +290,7 @@ Your login token expires after 24 hours. Instead of logging in again, you can us
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -291,10 +315,10 @@ curl -X GET http://localhost:5000/api/User/me \
 
 ```javascript
 // JavaScript example
-fetch('http://localhost:5000/api/User/me', {
+fetch("http://localhost:5000/api/User/me", {
   headers: {
-    'Authorization': `Bearer ${accessToken}`
-  }
+    Authorization: `Bearer ${accessToken}`,
+  },
 });
 ```
 
@@ -311,6 +335,7 @@ fetch('http://localhost:5000/api/User/me', {
 Retrieves your account information including name, email, phone, and role.
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -337,6 +362,7 @@ Retrieves your account information including name, email, phone, and role.
 Update your account information like name, phone number, or email address.
 
 **Request Body:**
+
 ```json
 {
   "name": "John Michael Doe",
@@ -346,6 +372,7 @@ Update your account information like name, phone number, or email address.
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -361,6 +388,7 @@ Update your account information like name, phone number, or email address.
 **Authorization:** Required
 
 **Request Body:**
+
 ```json
 {
   "currentPassword": "SecurePass123!",
@@ -370,6 +398,7 @@ Update your account information like name, phone number, or email address.
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -385,9 +414,11 @@ Update your account information like name, phone number, or email address.
 **Authorization:** Admin only
 
 **Query Parameters:**
+
 - `role` (optional): Filter by role (`Customer`, `Provider`, `Admin`)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -411,6 +442,7 @@ Update your account information like name, phone number, or email address.
 ### Understanding Provider Workflow
 
 **For Non-Technical Users:**
+
 1. Register as a user with "Provider" role
 2. Submit provider profile with bio, experience, and services you offer
 3. Wait for admin approval
@@ -427,6 +459,7 @@ Update your account information like name, phone number, or email address.
 After creating a Provider account, this is where you tell us about your experience and what services you offer.
 
 **Request Body:**
+
 ```json
 {
   "bio": "Experienced electrician with 10 years in residential and commercial projects",
@@ -434,17 +467,18 @@ After creating a Provider account, this is where you tell us about your experien
   "services": [
     {
       "serviceId": 1,
-      "basePrice": 75.00
+      "basePrice": 75.0
     },
     {
       "serviceId": 2,
-      "basePrice": 150.00
+      "basePrice": 150.0
     }
   ]
 }
 ```
 
 **Field Descriptions:**
+
 - `bio`: Brief description of your expertise (2-3 sentences)
 - `experience`: Years of experience in the field
 - `services`: Array of services you offer
@@ -452,6 +486,7 @@ After creating a Provider account, this is where you tell us about your experien
   - `basePrice`: Your base price for this service
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -460,6 +495,7 @@ After creating a Provider account, this is where you tell us about your experien
 ```
 
 **Real-World Example:**
+
 ```json
 {
   "bio": "Licensed plumber specializing in emergency repairs, installations, and maintenance. Available 24/7 for urgent issues.",
@@ -467,11 +503,11 @@ After creating a Provider account, this is where you tell us about your experien
   "services": [
     {
       "serviceId": 5,
-      "basePrice": 100.00
+      "basePrice": 100.0
     },
     {
       "serviceId": 6,
-      "basePrice": 200.00
+      "basePrice": 200.0
     }
   ]
 }
@@ -485,6 +521,7 @@ After creating a Provider account, this is where you tell us about your experien
 **Authorization:** Required (Provider role)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -495,7 +532,7 @@ After creating a Provider account, this is where you tell us about your experien
     "services": [
       {
         "serviceId": 1,
-        "basePrice": 75.00
+        "basePrice": 75.0
       }
     ]
   }
@@ -513,14 +550,16 @@ After creating a Provider account, this is where you tell us about your experien
 Add a new service to your offerings. For example, if you're an electrician already offering "Basic Electrical Repair" and now want to add "Smart Home Installation".
 
 **Request Body:**
+
 ```json
 {
   "serviceId": 3,
-  "basePrice": 200.00
+  "basePrice": 200.0
 }
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "message": "Service added successfully."
@@ -535,18 +574,21 @@ Add a new service to your offerings. For example, if you're an electrician alrea
 **Authorization:** Required (Provider role)
 
 **Request Body:**
+
 ```json
 {
-  "basePrice": 85.00,
+  "basePrice": 85.0,
   "priceType": "Hourly"
 }
 ```
 
 **Field Descriptions:**
+
 - `basePrice`: Your new price
 - `priceType`: Either `"Fixed"` (one-time price) or `"Hourly"` (per hour rate)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "message": "Service updated successfully."
@@ -561,11 +603,13 @@ Add a new service to your offerings. For example, if you're an electrician alrea
 **Authorization:** Required (Provider role)
 
 **Example:**
+
 ```bash
 DELETE /api/Providers/services/3
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "message": "Service deleted successfully."
@@ -583,6 +627,7 @@ DELETE /api/Providers/services/3
 Find service providers based on the service you need, their ratings, and pricing type. Returns a paginated list of providers.
 
 **Query Parameters:**
+
 - `serviceId` (required): The service you need (e.g., plumbing, electrical)
 - `minRating` (optional): Minimum average rating (1-5)
 - `priceType` (optional): Filter by `"Fixed"` or `"Hourly"` pricing
@@ -590,11 +635,13 @@ Find service providers based on the service you need, their ratings, and pricing
 - `pageSize` (optional): Results per page (default: 10)
 
 **Example Request:**
+
 ```
 GET /api/Providers/search?serviceId=1&minRating=4.0&priceType=Hourly&page=1&pageSize=10
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -607,7 +654,7 @@ GET /api/Providers/search?serviceId=1&minRating=4.0&priceType=Hourly&page=1&page
         "bio": "Experienced electrician with 10 years in residential projects",
         "experience": 10,
         "avgRating": 4.8,
-        "basePrice": 75.00,
+        "basePrice": 75.0,
         "priceType": "Hourly",
         "serviceName": "Electrical Repair"
       },
@@ -617,7 +664,7 @@ GET /api/Providers/search?serviceId=1&minRating=4.0&priceType=Hourly&page=1&page
         "bio": "Licensed electrician specializing in smart home installations",
         "experience": 8,
         "avgRating": 4.5,
-        "basePrice": 90.00,
+        "basePrice": 90.0,
         "priceType": "Hourly",
         "serviceName": "Electrical Repair"
       }
@@ -633,14 +680,17 @@ GET /api/Providers/search?serviceId=1&minRating=4.0&priceType=Hourly&page=1&page
 ```
 
 **Practical Example:**
+
 ```javascript
 // Find plumbers with at least 4-star rating
-fetch('/api/Providers/search?serviceId=5&minRating=4.0')
-  .then(res => res.json())
-  .then(data => {
+fetch("/api/Providers/search?serviceId=5&minRating=4.0")
+  .then((res) => res.json())
+  .then((data) => {
     console.log(`Found ${data.data.totalCount} qualified plumbers`);
-    data.data.items.forEach(provider => {
-      console.log(`${provider.providerName}: ${provider.avgRating} stars, $${provider.basePrice}/hr`);
+    data.data.items.forEach((provider) => {
+      console.log(
+        `${provider.providerName}: ${provider.avgRating} stars, $${provider.basePrice}/hr`,
+      );
     });
   });
 ```
@@ -660,6 +710,7 @@ The platform offers various home maintenance services organized into categories 
 **Authorization:** Not required
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -698,11 +749,13 @@ The platform offers various home maintenance services organized into categories 
 Get all services within a specific category. For example, get all types of electrical services available.
 
 **Example Request:**
+
 ```
 GET /api/Service/categories/1/services
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -736,11 +789,13 @@ GET /api/Service/categories/1/services
 **Authorization:** Not required
 
 **Example Request:**
+
 ```
 GET /api/Service/1
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -764,17 +819,20 @@ GET /api/Service/1
 **Authorization:** Not required
 
 **Query Parameters:**
+
 - `search` (optional): Search by service name
 - `categoryId` (optional): Filter by category
 - `page` (optional): Page number (default: 1)
 - `pageSize` (optional): Results per page (default: 10)
 
 **Example Request:**
+
 ```
 GET /api/Service/search?search=repair&categoryId=1&page=1&pageSize=10
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -810,6 +868,7 @@ GET /api/Service/search?search=repair&categoryId=1&page=1&pageSize=10
 Providers set their weekly schedule (e.g., Monday 9 AM - 5 PM). The system automatically creates 1-hour time slots that customers can book. Once a slot is booked, it becomes unavailable.
 
 **For Technical Users:**
+
 - Providers define weekly availability (ProviderAvailability table)
 - Background service generates TimeSlots from availability (nightly at 2 AM)
 - Slots generated in 1-hour increments, 14 days ahead by default
@@ -817,6 +876,7 @@ Providers set their weekly schedule (e.g., Monday 9 AM - 5 PM). The system autom
 - Expired slots automatically cleaned up
 
 ### Provider Workflow:
+
 1. Set weekly availability schedule
 2. System generates time slots automatically
 3. Customers see and book available slots
@@ -833,6 +893,7 @@ Providers set their weekly schedule (e.g., Monday 9 AM - 5 PM). The system autom
 Tell the system when you're available to work each week. You can set different hours for different days.
 
 **Request Body:**
+
 ```json
 {
   "slots": [
@@ -871,16 +932,19 @@ Tell the system when you're available to work each week. You can set different h
 ```
 
 **Field Descriptions:**
+
 - `dayOfWeek`: Day name (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
 - `startTime`: When you start work (24-hour format: HH:MM:SS)
 - `endTime`: When you finish work (24-hour format: HH:MM:SS)
 
 **Important Notes:**
+
 - `startTime` must be before `endTime`
 - This replaces your entire schedule (not added to existing)
 - System will automatically generate bookable time slots
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -899,6 +963,7 @@ Tell the system when you're available to work each week. You can set different h
 ```
 
 **Example - Part-time Schedule:**
+
 ```json
 {
   "slots": [
@@ -937,6 +1002,7 @@ Tell the system when you're available to work each week. You can set different h
 View your current weekly availability schedule.
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -973,9 +1039,11 @@ View your current weekly availability schedule.
 Manually create bookable time slots from your availability. The system also does this automatically every night at 2 AM.
 
 **Query Parameters:**
+
 - `daysAhead` (optional): How many days ahead to generate slots (default: 7)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1010,19 +1078,21 @@ Manually create bookable time slots from your availability. The system also does
 **Endpoint:** `GET /api/Slots/{providerId}?date=2026-07-10`  
 **Authorization:** Not required
 
-
 **What it does (Non-Technical):**
 See all available time slots for a specific provider on a specific date. Only shows future slots that haven't been booked yet.
 
 **Query Parameters:**
+
 - `date` (required): Date in format YYYY-MM-DD
 
 **Example Request:**
+
 ```
 GET /api/Slots/5?date=2026-07-10
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1051,16 +1121,17 @@ GET /api/Slots/5?date=2026-07-10
 ```
 
 **Practical Example (JavaScript):**
+
 ```javascript
 // Show available slots for today
 const providerId = 5;
-const today = new Date().toISOString().split('T')[0]; // "2026-07-10"
+const today = new Date().toISOString().split("T")[0]; // "2026-07-10"
 
 fetch(`/api/Slots/${providerId}?date=${today}`)
-  .then(res => res.json())
-  .then(data => {
+  .then((res) => res.json())
+  .then((data) => {
     console.log(`${data.data.length} slots available today`);
-    data.data.forEach(slot => {
+    data.data.forEach((slot) => {
       console.log(`${slot.startTime} - ${slot.endTime}`);
     });
   });
@@ -1073,6 +1144,7 @@ fetch(`/api/Slots/${providerId}?date=${today}`)
 ### Understanding the Booking Lifecycle
 
 **For Non-Technical Users:**
+
 1. **Pending**: You created a booking, waiting for provider to accept
 2. **Confirmed**: Provider accepted, booking is scheduled
 3. **InProgress**: Provider started working
@@ -1081,8 +1153,8 @@ fetch(`/api/Slots/${providerId}?date=${today}`)
 6. **Cancelled**: Booking was cancelled
 7. **Rejected**: Provider declined the booking
 
-
 **Status Transitions:**
+
 ```
 Pending → Confirmed → InProgress → Completed → Paid
    ↓          ↓
@@ -1100,6 +1172,7 @@ Rejected   Cancelled
 Book a service provider for a specific time slot. You need to know the provider ID, service ID, and slot ID.
 
 **Request Body:**
+
 ```json
 {
   "providerId": 5,
@@ -1110,12 +1183,14 @@ Book a service provider for a specific time slot. You need to know the provider 
 ```
 
 **Field Descriptions:**
+
 - `providerId`: ID of the provider you want to book
 - `serviceId`: ID of the service you need
 - `slotId`: ID of the time slot (from available slots API)
 - `notes`: Additional information about the job (optional)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1137,6 +1212,7 @@ Book a service provider for a specific time slot. You need to know the provider 
 **Error Responses:**
 
 **Slot already booked (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -1145,6 +1221,7 @@ Book a service provider for a specific time slot. You need to know the provider 
 ```
 
 **Slot in the past (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -1153,9 +1230,10 @@ Book a service provider for a specific time slot. You need to know the provider 
 ```
 
 **Complete Example:**
+
 ```javascript
 // 1. Get available slots
-const slotsResponse = await fetch('/api/Slots/5?date=2026-07-10');
+const slotsResponse = await fetch("/api/Slots/5?date=2026-07-10");
 const slots = await slotsResponse.json();
 
 // 2. Book the first available slot
@@ -1163,16 +1241,16 @@ const booking = {
   providerId: 5,
   serviceId: 1,
   slotId: slots.data[0].id,
-  notes: "Kitchen lighting repair needed"
+  notes: "Kitchen lighting repair needed",
 };
 
-const bookingResponse = await fetch('/api/Booking', {
-  method: 'POST',
+const bookingResponse = await fetch("/api/Booking", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${accessToken}`
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${accessToken}`,
   },
-  body: JSON.stringify(booking)
+  body: JSON.stringify(booking),
 });
 
 const result = await bookingResponse.json();
@@ -1190,11 +1268,13 @@ console.log(`Booking created: ID ${result.data.id}`);
 Accept a booking request. This moves the booking from "Pending" to "Confirmed" status.
 
 **Example Request:**
+
 ```
 PUT /api/Booking/50/confirm
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": 50,
@@ -1220,11 +1300,13 @@ PUT /api/Booking/50/confirm
 Decline a booking request. The time slot becomes available again for other customers.
 
 **Example Request:**
+
 ```
 PUT /api/Booking/50/reject
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": 50,
@@ -1240,11 +1322,11 @@ PUT /api/Booking/50/reject
 **Endpoint:** `PUT /api/Booking/{id}/start`  
 **Authorization:** Required (Provider role)
 
-
 **What it does (Non-Technical):**
 Mark that you've arrived and started working on the job. Changes status from "Confirmed" to "InProgress".
 
 **Example Request:**
+
 ```
 PUT /api/Booking/50/start
 ```
@@ -1260,6 +1342,7 @@ PUT /api/Booking/50/start
 Mark the job as finished. Changes status from "InProgress" to "Completed". Customer can now make payment.
 
 **Example Request:**
+
 ```
 PUT /api/Booking/50/complete
 ```
@@ -1275,10 +1358,12 @@ PUT /api/Booking/50/complete
 Cancel a booking before work starts. The time slot becomes available again. Cannot cancel after work has started.
 
 **Important Rules:**
+
 - ✅ Can cancel: Pending, Confirmed
 - ❌ Cannot cancel: InProgress, Completed, Paid
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1291,6 +1376,7 @@ Cancel a booking before work starts. The time slot becomes available again. Cann
 ```
 
 **Error Response (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -1309,6 +1395,7 @@ Cancel a booking before work starts. The time slot becomes available again. Cann
 View all your bookings, split into active (ongoing) and past (completed or cancelled).
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1362,6 +1449,7 @@ View all your bookings, split into active (ongoing) and past (completed or cance
 See all booking requests waiting for your response (status: Pending).
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1399,11 +1487,11 @@ See all booking requests waiting for your response (status: Pending).
 **Endpoint:** `GET /api/Booking/provider/{providerId}/today-schedule`  
 **Authorization:** Required (Provider role)
 
-
 **What it does (Non-Technical):**
 See all your bookings scheduled for today, regardless of status.
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1457,6 +1545,7 @@ See all your bookings scheduled for today, regardless of status.
 After the provider completes the work, you need to verify payment. The platform takes a 10% commission, and the provider receives the rest.
 
 **For Technical Users:**
+
 - Payment required after booking status = "Completed"
 - Platform commission: 10% of final amount
 - Provider earnings auto-calculated: Amount - Commission
@@ -1464,6 +1553,7 @@ After the provider completes the work, you need to verify payment. The platform 
 - Reviews enabled only after payment
 
 ### Payment Flow:
+
 1. Provider completes work (Status: Completed)
 2. Provider verifies cash payment received
 3. System records payment with 10% commission
@@ -1477,25 +1567,27 @@ After the provider completes the work, you need to verify payment. The platform 
 **Endpoint:** `POST /api/Payments/verify-cash`  
 **Authorization:** Required (Provider role)
 
-
 **What it does (Non-Technical):**
 After completing a job and receiving cash payment from the customer, use this endpoint to record the payment in the system.
 
 **Request Body:**
+
 ```json
 {
   "bookingId": 50,
-  "finalAmount": 100.00,
+  "finalAmount": 100.0,
   "method": "Cash"
 }
 ```
 
 **Field Descriptions:**
+
 - `bookingId`: ID of the completed booking
 - `finalAmount`: Total amount received from customer
 - `method`: Payment method (`"Cash"`, `"Card"`, or `"Wallet"`)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1504,6 +1596,7 @@ After completing a job and receiving cash payment from the customer, use this en
 ```
 
 **Payment Breakdown Example:**
+
 ```
 Customer pays: $100.00
 Platform commission (10%): $10.00
@@ -1513,41 +1606,41 @@ Provider receives: $90.00
 **Error Responses:**
 
 **Booking not completed (400 Bad Request):**
+
 ```json
 {
   "success": false,
   "message": "Payment could not be processed.",
-  "errors": [
-    "Ensure booking is completed and not already paid."
-  ]
+  "errors": ["Ensure booking is completed and not already paid."]
 }
 ```
 
 **Practical Example:**
+
 ```javascript
 // After completing work
 async function recordPayment(bookingId, amount) {
-  const response = await fetch('/api/Payments/verify-cash', {
-    method: 'POST',
+  const response = await fetch("/api/Payments/verify-cash", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${providerToken}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${providerToken}`,
     },
     body: JSON.stringify({
       bookingId: bookingId,
       finalAmount: amount,
-      method: 'Cash'
-    })
+      method: "Cash",
+    }),
   });
-  
+
   const result = await response.json();
   if (result.success) {
-    console.log('Payment recorded! You earned: $' + (amount * 0.9).toFixed(2));
+    console.log("Payment recorded! You earned: $" + (amount * 0.9).toFixed(2));
   }
 }
 
 // Record $150 payment
-recordPayment(50, 150.00);
+recordPayment(50, 150.0);
 // Output: "Payment recorded! You earned: $135.00"
 ```
 
@@ -1560,8 +1653,8 @@ recordPayment(50, 150.00);
 **For Non-Technical Users:**
 After payment is completed, both the customer and provider can leave a review for each other. Reviews help maintain quality and trust on the platform.
 
-
 **Rules:**
+
 - Reviews only allowed after booking status = "Paid"
 - Each person can submit only ONE review per booking
 - Customer reviews affect provider's average rating
@@ -1578,6 +1671,7 @@ After payment is completed, both the customer and provider can leave a review fo
 Leave a review and rating for a completed booking.
 
 **Request Body:**
+
 ```json
 {
   "bookingId": 50,
@@ -1587,6 +1681,7 @@ Leave a review and rating for a completed booking.
 ```
 
 **Field Descriptions:**
+
 - `bookingId`: ID of the paid booking
 - `rating`: Rating from 1 to 5
   - 5 = Excellent
@@ -1597,6 +1692,7 @@ Leave a review and rating for a completed booking.
 - `comment`: Your written feedback (optional but recommended)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1607,6 +1703,7 @@ Leave a review and rating for a completed booking.
 **Error Responses:**
 
 **Booking not paid (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -1615,6 +1712,7 @@ Leave a review and rating for a completed booking.
 ```
 
 **Already reviewed (400 Bad Request):**
+
 ```json
 {
   "success": false,
@@ -1623,6 +1721,7 @@ Leave a review and rating for a completed booking.
 ```
 
 **Customer Review Example:**
+
 ```json
 {
   "bookingId": 50,
@@ -1632,6 +1731,7 @@ Leave a review and rating for a completed booking.
 ```
 
 **Provider Review Example:**
+
 ```json
 {
   "bookingId": 50,
@@ -1647,16 +1747,17 @@ Leave a review and rating for a completed booking.
 **Endpoint:** `GET /api/Review/can-review/{bookingId}`  
 **Authorization:** Required
 
-
 **What it does (Non-Technical):**
 Check if you're allowed to review a booking and why not if you can't.
 
 **Example Request:**
+
 ```
 GET /api/Review/can-review/50
 ```
 
 **Success Response - Can Review (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1668,6 +1769,7 @@ GET /api/Review/can-review/50
 ```
 
 **Success Response - Cannot Review (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1680,6 +1782,7 @@ GET /api/Review/can-review/50
 ```
 
 **Or:**
+
 ```json
 {
   "success": false,
@@ -1698,11 +1801,13 @@ GET /api/Review/can-review/50
 See all reviews left for a specific booking (usually 2: one from customer, one from provider).
 
 **Example Request:**
+
 ```
 GET /api/Review/booking/50
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1739,11 +1844,13 @@ GET /api/Review/booking/50
 View all customer reviews for a provider, including their average rating.
 
 **Example Request:**
+
 ```
 GET /api/Review/provider/5
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1780,18 +1887,19 @@ GET /api/Review/provider/5
 ```
 
 **Practical Use Case:**
+
 ```javascript
 // Display provider profile with reviews
 async function showProviderProfile(providerId) {
   const response = await fetch(`/api/Review/provider/${providerId}`);
   const data = await response.json();
-  
+
   console.log(`${data.data.providerName}`);
   console.log(`⭐ ${data.data.averageRating}/5.0 (${data.data.totalReviews} reviews)`);
-  console.log('\nRecent Reviews:');
-  
-  data.data.reviews.slice(0, 5).forEach(review => {
-    console.log(`\n${'⭐'.repeat(review.rating)} - ${review.reviewerName}`);
+  console.log("\nRecent Reviews:");
+
+  data.data.reviews.slice(0, 5).forEach((review) => {
+    console.log(`\n${"⭐".repeat(review.rating)} - ${review.reviewerName}`);
     console.log(review.comment);
   });
 }
@@ -1819,6 +1927,7 @@ Admins approve or reject provider applications to ensure only qualified professi
 View all providers waiting for approval.
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1841,7 +1950,7 @@ View all providers waiting for approval.
         {
           "serviceId": 1,
           "serviceName": "Electrical Repair",
-          "basePrice": 75.00
+          "basePrice": 75.0
         }
       ],
       "createdAt": "2026-07-08T09:00:00Z"
@@ -1861,11 +1970,13 @@ View all providers waiting for approval.
 Approve a provider's application, allowing them to receive bookings.
 
 **Example Request:**
+
 ```
 PUT /api/Admin/providers/8/approve
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1884,11 +1995,13 @@ PUT /api/Admin/providers/8/approve
 Reject a provider's application.
 
 **Example Request:**
+
 ```
 PUT /api/Admin/providers/8/reject
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1904,6 +2017,7 @@ PUT /api/Admin/providers/8/reject
 **Authorization:** Required (Admin role)
 
 **Query Parameters:**
+
 - `providerId`: ID of the provider
 - `status`: New status
   - `1` = PendingApproval
@@ -1912,11 +2026,13 @@ PUT /api/Admin/providers/8/reject
   - `4` = Suspended
 
 **Example Request:**
+
 ```
 PUT /api/Admin/providers/status?providerId=8&status=4
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1944,21 +2060,22 @@ All errors follow a consistent structure:
 
 ### HTTP Status Codes
 
-| Code | Meaning | When It Happens |
-|------|---------|-----------------|
-| 200 | OK | Request succeeded |
-| 201 | Created | Resource created successfully |
-| 400 | Bad Request | Invalid data or business rule violation |
-| 401 | Unauthorized | Missing or invalid authentication token |
-| 403 | Forbidden | Authenticated but lacking permissions |
-| 404 | Not Found | Resource doesn't exist |
-| 500 | Internal Server Error | Unexpected server error |
+| Code | Meaning               | When It Happens                         |
+| ---- | --------------------- | --------------------------------------- |
+| 200  | OK                    | Request succeeded                       |
+| 201  | Created               | Resource created successfully           |
+| 400  | Bad Request           | Invalid data or business rule violation |
+| 401  | Unauthorized          | Missing or invalid authentication token |
+| 403  | Forbidden             | Authenticated but lacking permissions   |
+| 404  | Not Found             | Resource doesn't exist                  |
+| 500  | Internal Server Error | Unexpected server error                 |
 
 ### Common Error Scenarios
 
 #### 1. Authentication Errors
 
 **Missing Token:**
+
 ```json
 {
   "statusCode": 401,
@@ -1968,6 +2085,7 @@ All errors follow a consistent structure:
 ```
 
 **Invalid/Expired Token:**
+
 ```json
 {
   "statusCode": 401,
@@ -1979,6 +2097,7 @@ All errors follow a consistent structure:
 #### 2. Authorization Errors
 
 **Wrong Role:**
+
 ```json
 {
   "statusCode": 403,
@@ -1991,20 +2110,19 @@ All errors follow a consistent structure:
 #### 3. Validation Errors
 
 **Missing Required Fields:**
+
 ```json
 {
   "success": false,
   "message": "Validation failed",
-  "errors": [
-    "Email is required",
-    "Password must be at least 8 characters"
-  ]
+  "errors": ["Email is required", "Password must be at least 8 characters"]
 }
 ```
 
 #### 4. Business Logic Errors
 
 **Booking Slot Conflict:**
+
 ```json
 {
   "statusCode": 400,
@@ -2014,6 +2132,7 @@ All errors follow a consistent structure:
 ```
 
 **Invalid Status Transition:**
+
 ```json
 {
   "statusCode": 400,
@@ -2029,6 +2148,7 @@ All errors follow a consistent structure:
 ### Core Entities
 
 #### ApplicationUser
+
 ```json
 {
   "id": "string (GUID)",
@@ -2041,6 +2161,7 @@ All errors follow a consistent structure:
 ```
 
 #### ProviderProfile
+
 ```json
 {
   "id": "integer",
@@ -2055,6 +2176,7 @@ All errors follow a consistent structure:
 ```
 
 #### Service
+
 ```json
 {
   "id": "integer",
@@ -2067,6 +2189,7 @@ All errors follow a consistent structure:
 ```
 
 #### TimeSlot
+
 ```json
 {
   "id": "integer",
@@ -2079,6 +2202,7 @@ All errors follow a consistent structure:
 ```
 
 #### Booking
+
 ```json
 {
   "id": "integer",
@@ -2093,6 +2217,7 @@ All errors follow a consistent structure:
 ```
 
 #### Payment
+
 ```json
 {
   "id": "integer",
@@ -2107,6 +2232,7 @@ All errors follow a consistent structure:
 ```
 
 #### Review
+
 ```json
 {
   "id": "integer",
@@ -2127,6 +2253,7 @@ All errors follow a consistent structure:
 ### Journey 1: Customer Books a Service
 
 **Step 1: Register as Customer**
+
 ```bash
 POST /api/Auth/register
 {
@@ -2140,30 +2267,35 @@ POST /api/Auth/register
 ```
 
 **Step 2: Browse Service Categories**
+
 ```bash
 GET /api/Service/categories
 # Choose "Electrical" (id: 1)
 ```
 
 **Step 3: View Electrical Services**
+
 ```bash
 GET /api/Service/categories/1/services
 # Choose "Electrical Repair" (id: 1)
 ```
 
 **Step 4: Search for Providers**
+
 ```bash
 GET /api/Providers/search?serviceId=1&minRating=4.0
 # Choose provider with id: 5
 ```
 
 **Step 5: Check Available Slots**
+
 ```bash
 GET /api/Slots/5?date=2026-07-15
 # Choose slot id: 101 (09:00-10:00)
 ```
 
 **Step 6: Create Booking**
+
 ```bash
 POST /api/Booking
 Authorization: Bearer {accessToken}
@@ -2177,24 +2309,28 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 7: Wait for Provider to Confirm**
+
 ```bash
 # Provider confirms
 # Booking status → Confirmed
 ```
 
 **Step 8: Provider Completes Work**
+
 ```bash
 # Provider starts: status → InProgress
 # Provider completes: status → Completed
 ```
 
 **Step 9: Provider Records Payment**
+
 ```bash
 # Provider verifies payment
 # Booking status → Paid
 ```
 
 **Step 10: Leave Review**
+
 ```bash
 POST /api/Review
 Authorization: Bearer {accessToken}
@@ -2210,6 +2346,7 @@ Authorization: Bearer {accessToken}
 ### Journey 2: Provider Joins Platform
 
 **Step 1: Register as Provider**
+
 ```bash
 POST /api/Auth/register
 {
@@ -2222,6 +2359,7 @@ POST /api/Auth/register
 ```
 
 **Step 2: Submit Provider Profile**
+
 ```bash
 POST /api/Providers/register
 Authorization: Bearer {accessToken}
@@ -2237,12 +2375,14 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 3: Wait for Admin Approval**
+
 ```bash
 # Admin reviews and approves
 # Status → Approved, isApproved: true
 ```
 
 **Step 4: Set Weekly Availability**
+
 ```bash
 PUT /api/Slots/availability
 Authorization: Bearer {accessToken}
@@ -2258,6 +2398,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 5: Generate Bookable Slots**
+
 ```bash
 POST /api/Slots/generate?daysAhead=14
 Authorization: Bearer {accessToken}
@@ -2265,6 +2406,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 6: Monitor Incoming Requests**
+
 ```bash
 GET /api/Booking/provider/5/incoming-requests
 Authorization: Bearer {accessToken}
@@ -2272,6 +2414,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 7: Accept Booking**
+
 ```bash
 PUT /api/Booking/50/confirm
 Authorization: Bearer {accessToken}
@@ -2279,12 +2422,14 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 8: Check Today's Schedule**
+
 ```bash
 GET /api/Booking/provider/5/today-schedule
 Authorization: Bearer {accessToken}
 ```
 
 **Step 9: Start Work**
+
 ```bash
 PUT /api/Booking/50/start
 Authorization: Bearer {accessToken}
@@ -2292,6 +2437,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 10: Complete Work**
+
 ```bash
 PUT /api/Booking/50/complete
 Authorization: Bearer {accessToken}
@@ -2299,6 +2445,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 11: Record Payment**
+
 ```bash
 POST /api/Payments/verify-cash
 Authorization: Bearer {accessToken}
@@ -2313,6 +2460,7 @@ Authorization: Bearer {accessToken}
 ```
 
 **Step 12: Review Customer**
+
 ```bash
 POST /api/Review
 Authorization: Bearer {accessToken}
@@ -2331,17 +2479,20 @@ Authorization: Bearer {accessToken}
 
 **What it does:**
 Every night at 2:00 AM, the system automatically:
+
 1. Deletes expired time slots (past dates)
 2. Generates new slots for all providers (14 days ahead)
 3. Based on each provider's weekly availability
 
 **Technical Details:**
+
 - Runs as IHostedService
 - Prevents duplicate slot generation
 - Creates 1-hour time slot increments
 - Only generates for providers with availability set
 
 **Provider Benefits:**
+
 - No manual slot management required
 - Always have bookable slots available
 - Old slots cleaned up automatically
@@ -2355,12 +2506,14 @@ Two customers try to book the same time slot simultaneously.
 
 **Solution:**
 TimeSlot entity has RowVersion (concurrency token). When booking:
+
 1. First request locks the slot
 2. Second request gets `DbUpdateConcurrencyException`
 3. Error message: "This time slot was just booked by someone else"
 4. Customer must choose different slot
 
 **Error Response:**
+
 ```json
 {
   "statusCode": 400,
@@ -2374,6 +2527,7 @@ TimeSlot entity has RowVersion (concurrency token). When booking:
 ### Commission Calculation
 
 **How It Works:**
+
 ```
 Customer Payment: $150.00
 Platform Commission (10%): $15.00
@@ -2381,15 +2535,17 @@ Provider Earnings: $135.00
 ```
 
 **In Database:**
+
 ```json
 {
-  "amount": 150.00,
-  "commission": 15.00,
-  "providerEarnings": 135.00
+  "amount": 150.0,
+  "commission": 15.0,
+  "providerEarnings": 135.0
 }
 ```
 
 **Calculation:**
+
 - Commission = Amount × 0.10
 - Provider Earnings = Amount - Commission (computed property)
 
@@ -2398,12 +2554,14 @@ Provider Earnings: $135.00
 ### Rating System
 
 **Provider Average Rating Update:**
+
 - Calculated when customer submits review
 - Formula: Average of all customer ratings
 - Updates immediately in ProviderProfile table
 - Affects search result ordering (higher ratings first)
 
 **Example:**
+
 ```
 Existing reviews: 4.5, 5.0, 4.0, 5.0, 4.5
 New review: 5.0
@@ -2417,97 +2575,96 @@ New average: (4.5 + 5.0 + 4.0 + 5.0 + 4.5 + 5.0) / 6 = 4.67
 ### For Frontend Developers
 
 #### 1. Token Management
+
 ```javascript
 // Store tokens securely
-localStorage.setItem('accessToken', data.accessToken);
-localStorage.setItem('refreshToken', data.refreshToken);
+localStorage.setItem("accessToken", data.accessToken);
+localStorage.setItem("refreshToken", data.refreshToken);
 
 // Add token to all requests
 const fetchWithAuth = async (url, options = {}) => {
-  const token = localStorage.getItem('accessToken');
+  const token = localStorage.getItem("accessToken");
   return fetch(url, {
     ...options,
     headers: {
       ...options.headers,
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 };
 
 // Auto-refresh on 401
 async function fetchWithAutoRefresh(url, options) {
   let response = await fetchWithAuth(url, options);
-  
+
   if (response.status === 401) {
     // Try refreshing token
-    const refreshToken = localStorage.getItem('refreshToken');
-    const refreshResponse = await fetch('/api/Auth/refresh-token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken })
+    const refreshToken = localStorage.getItem("refreshToken");
+    const refreshResponse = await fetch("/api/Auth/refresh-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
     });
-    
+
     if (refreshResponse.ok) {
       const data = await refreshResponse.json();
-      localStorage.setItem('accessToken', data.data.accessToken);
-      localStorage.setItem('refreshToken', data.data.refreshToken);
-      
+      localStorage.setItem("accessToken", data.data.accessToken);
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+
       // Retry original request
       response = await fetchWithAuth(url, options);
     }
   }
-  
+
   return response;
 }
 ```
 
 #### 2. Error Handling
+
 ```javascript
 async function handleApiCall(url, options) {
   try {
     const response = await fetchWithAuth(url, options);
     const data = await response.json();
-    
+
     if (!response.ok) {
       // Show user-friendly error
       if (data.errors && data.errors.length > 0) {
-        alert(data.errors.join('\n'));
+        alert(data.errors.join("\n"));
       } else {
-        alert(data.message || 'An error occurred');
+        alert(data.message || "An error occurred");
       }
       return null;
     }
-    
+
     return data;
   } catch (error) {
-    console.error('Network error:', error);
-    alert('Network error. Please check your connection.');
+    console.error("Network error:", error);
+    alert("Network error. Please check your connection.");
     return null;
   }
 }
 ```
 
 #### 3. Pagination Helper
+
 ```javascript
 function PaginationControls({ pagination, onPageChange }) {
   return (
     <div>
-      <button 
+      <button
         disabled={!pagination.hasPreviousPage}
         onClick={() => onPageChange(pagination.page - 1)}
       >
         Previous
       </button>
-      
+
       <span>
-        Page {pagination.page} of {pagination.totalPages}
-        ({pagination.totalCount} total)
+        Page {pagination.page} of {pagination.totalPages}({pagination.totalCount} total)
       </span>
-      
-      <button 
-        disabled={!pagination.hasNextPage}
-        onClick={() => onPageChange(pagination.page + 1)}
-      >
+
+      <button disabled={!pagination.hasNextPage} onClick={() => onPageChange(pagination.page + 1)}>
         Next
       </button>
     </div>
@@ -2518,12 +2675,14 @@ function PaginationControls({ pagination, onPageChange }) {
 ### For Backend Developers
 
 #### 1. Adding New Endpoints
+
 - Follow existing controller patterns
 - Use `[Authorize]` for protected endpoints
 - Return `ApiResponse<T>` wrapper
 - Handle exceptions in GlobalExceptionHandlingMiddleware
 
 #### 2. Database Migrations
+
 ```bash
 # Add migration
 dotnet ef migrations add YourMigrationName
@@ -2533,6 +2692,7 @@ dotnet ef database update
 ```
 
 #### 3. Testing Endpoints
+
 Use Swagger UI at `http://localhost:5000/swagger` for interactive testing.
 
 ---
@@ -2540,27 +2700,33 @@ Use Swagger UI at `http://localhost:5000/swagger` for interactive testing.
 ## Security Considerations
 
 ### 1. Password Security
+
 - Passwords hashed using ASP.NET Core Identity PasswordHasher
 - Algorithm: PBKDF2 with HMAC-SHA256
 - Never store plain text passwords
 
 ### 2. JWT Security
+
 - Tokens signed with HS256 algorithm
 - Secret key stored in appsettings.json (use environment variables in production)
 - Access token: 24-hour expiry
 - Refresh token: 7-day expiry
 
 ### 3. Authorization
+
 - Role-based access control (RBAC)
 - Endpoint protection with `[Authorize(Roles = "...")]`
 - Claims stored in JWT token
 
 ### 4. SQL Injection Prevention
+
 - Entity Framework Core parameterized queries
 - Never use string concatenation for queries
 
 ### 5. CORS (Cross-Origin Resource Sharing)
+
 Configure in production:
+
 ```csharp
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowFrontend", policy => {
@@ -2578,26 +2744,32 @@ builder.Services.AddCors(options => {
 ### Common Issues
 
 #### Issue 1: "Unauthorized" Error
+
 **Symptoms:** 401 status on protected endpoints
 
 **Solutions:**
+
 - Check token is included: `Authorization: Bearer {token}`
 - Verify token hasn't expired (24 hours)
 - Use refresh token to get new access token
 - Re-login if refresh token expired
 
 #### Issue 2: "Slot Already Booked"
+
 **Symptoms:** Cannot book a time slot
 
 **Solutions:**
+
 - Refresh available slots (GET /api/Slots/{providerId}?date=...)
 - Choose different time slot
 - This is expected behavior (not a bug)
 
 #### Issue 3: "Cannot Complete Booking"
+
 **Symptoms:** Status transition errors
 
 **Solutions:**
+
 - Check current booking status
 - Verify correct status transition:
   - Pending → Confirmed (or Rejected)
@@ -2607,18 +2779,22 @@ builder.Services.AddCors(options => {
 - Cannot skip steps
 
 #### Issue 4: "Provider Not Found in Search"
+
 **Symptoms:** Provider doesn't appear in search results
 
 **Possible Reasons:**
+
 - Provider status not "Approved" (check with admin)
 - Provider doesn't offer the searched service
 - Provider rating below minimum filter
 - Provider hasn't set availability/generated slots
 
 #### Issue 5: "Cannot Submit Review"
+
 **Symptoms:** Review submission fails
 
 **Solutions:**
+
 - Ensure booking status is "Paid"
 - Check if you already reviewed this booking (one review per user per booking)
 - Verify you're part of the booking (customer or provider)
@@ -2667,6 +2843,7 @@ builder.Services.AddCors(options => {
 **Current Status:** Not implemented
 
 **Recommended for Production:**
+
 - 100 requests per minute per IP
 - 1000 requests per hour per user
 - Implement using ASP.NET Core middleware
@@ -2678,6 +2855,7 @@ builder.Services.AddCors(options => {
 **Current Version:** v1 (implicit)
 
 **Future Versioning Strategy:**
+
 - URL-based: `/api/v2/...`
 - Header-based: `Api-Version: 2`
 - Backward compatibility maintained for at least 6 months
@@ -2687,11 +2865,13 @@ builder.Services.AddCors(options => {
 ## Support & Contact
 
 ### For API Issues
+
 - Check this documentation first
 - Review error messages carefully
 - Check server logs for detailed errors
 
 ### For Business/Integration Questions
+
 - Contact platform administrator
 - Review terms of service
 - Check integration guidelines
@@ -2733,17 +2913,20 @@ builder.Services.AddCors(options => {
 ### All Endpoints Summary
 
 #### Authentication
+
 - `POST /api/Auth/register` - Register user
 - `POST /api/Auth/login` - Login
 - `POST /api/Auth/refresh-token` - Refresh token
 
 #### User Management
+
 - `GET /api/User/me` - Get profile
 - `PUT /api/User/me` - Update profile
 - `POST /api/User/change-password` - Change password
 - `GET /api/User` - Get all users (Admin)
 
 #### Providers
+
 - `POST /api/Providers/register` - Register as provider
 - `POST /api/Providers/services` - Add service
 - `PUT /api/Providers/services/{id}` - Update service
@@ -2752,18 +2935,21 @@ builder.Services.AddCors(options => {
 - `GET /api/Providers/search` - Search providers
 
 #### Services
+
 - `GET /api/Service/categories` - Get categories
 - `GET /api/Service/categories/{id}/services` - Get services by category
 - `GET /api/Service/{id}` - Get service details
 - `GET /api/Service/search` - Search services
 
 #### Slots & Availability
+
 - `PUT /api/Slots/availability` - Set availability
 - `GET /api/Slots/availability` - Get availability
 - `POST /api/Slots/generate` - Generate slots
 - `GET /api/Slots/{providerId}?date=` - Get available slots
 
 #### Bookings
+
 - `POST /api/Booking` - Create booking
 - `PUT /api/Booking/{id}/confirm` - Confirm booking
 - `PUT /api/Booking/{id}/reject` - Reject booking
@@ -2775,15 +2961,18 @@ builder.Services.AddCors(options => {
 - `GET /api/Booking/provider/{id}/today-schedule` - Today's schedule
 
 #### Payments
+
 - `POST /api/Payments/verify-cash` - Verify payment
 
 #### Reviews
+
 - `POST /api/Review` - Create review
 - `GET /api/Review/booking/{id}` - Get booking reviews
 - `GET /api/Review/can-review/{id}` - Check review eligibility
 - `GET /api/Review/provider/{id}` - Get provider reviews
 
 #### Admin
+
 - `GET /api/Admin/providers/pending` - Get pending providers
 - `PUT /api/Admin/providers/{id}/approve` - Approve provider
 - `PUT /api/Admin/providers/{id}/reject` - Reject provider
@@ -2793,15 +2982,15 @@ builder.Services.AddCors(options => {
 
 ### Status Code Quick Reference
 
-| Code | Name | Meaning |
-|------|------|---------|
-| 200 | OK | Success |
-| 201 | Created | Resource created |
-| 400 | Bad Request | Invalid input |
-| 401 | Unauthorized | Authentication required |
-| 403 | Forbidden | Insufficient permissions |
-| 404 | Not Found | Resource not found |
-| 500 | Server Error | Internal error |
+| Code | Name         | Meaning                  |
+| ---- | ------------ | ------------------------ |
+| 200  | OK           | Success                  |
+| 201  | Created      | Resource created         |
+| 400  | Bad Request  | Invalid input            |
+| 401  | Unauthorized | Authentication required  |
+| 403  | Forbidden    | Insufficient permissions |
+| 404  | Not Found    | Resource not found       |
+| 500  | Server Error | Internal error           |
 
 ---
 
@@ -2833,20 +3022,21 @@ CREATE BOOKING
 
 ### Time Format Reference
 
-| Format | Example | Use Case |
-|--------|---------|----------|
-| Date | `2026-07-10` | Slot dates |
-| Time | `09:00:00` | Start/End times |
-| DateTime | `2026-07-10T09:30:00Z` | Timestamps |
-| Day of Week | `Monday` | Availability |
+| Format      | Example                | Use Case        |
+| ----------- | ---------------------- | --------------- |
+| Date        | `2026-07-10`           | Slot dates      |
+| Time        | `09:00:00`             | Start/End times |
+| DateTime    | `2026-07-10T09:30:00Z` | Timestamps      |
+| Day of Week | `Monday`               | Availability    |
 
 ---
 
 ### Sample Integration Code
 
 #### React Example
+
 ```jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 function ProviderSearch() {
   const [providers, setProviders] = useState([]);
@@ -2854,9 +3044,7 @@ function ProviderSearch() {
 
   useEffect(() => {
     async function fetchProviders() {
-      const response = await fetch(
-        '/api/Providers/search?serviceId=1&minRating=4.0'
-      );
+      const response = await fetch("/api/Providers/search?serviceId=1&minRating=4.0");
       const data = await response.json();
       setProviders(data.data.items);
       setLoading(false);
@@ -2869,11 +3057,13 @@ function ProviderSearch() {
   return (
     <div>
       <h2>Available Providers</h2>
-      {providers.map(provider => (
+      {providers.map((provider) => (
         <div key={provider.providerId}>
           <h3>{provider.providerName}</h3>
           <p>⭐ {provider.avgRating}/5.0</p>
-          <p>${provider.basePrice} - {provider.priceType}</p>
+          <p>
+            ${provider.basePrice} - {provider.priceType}
+          </p>
           <p>{provider.bio}</p>
         </div>
       ))}
@@ -2883,6 +3073,7 @@ function ProviderSearch() {
 ```
 
 #### Python Example
+
 ```python
 import requests
 from datetime import datetime
@@ -2891,7 +3082,7 @@ class HomeServiceAPI:
     def __init__(self, base_url):
         self.base_url = base_url
         self.token = None
-    
+
     def login(self, email, password):
         response = requests.post(
             f"{self.base_url}/api/Auth/login",
@@ -2900,21 +3091,21 @@ class HomeServiceAPI:
         data = response.json()
         self.token = data['data']['accessToken']
         return data
-    
+
     def get_headers(self):
         return {"Authorization": f"Bearer {self.token}"}
-    
+
     def search_providers(self, service_id, min_rating=None):
         params = {"serviceId": service_id}
         if min_rating:
             params["minRating"] = min_rating
-        
+
         response = requests.get(
             f"{self.base_url}/api/Providers/search",
             params=params
         )
         return response.json()
-    
+
     def create_booking(self, provider_id, service_id, slot_id, notes=""):
         response = requests.post(
             f"{self.base_url}/api/Booking",
@@ -2945,6 +3136,7 @@ print(f"Booking created: {booking['data']['id']}")
 ```
 
 #### cURL Examples Collection
+
 ```bash
 # Save these in a file for quick testing
 
@@ -2980,6 +3172,7 @@ curl -X POST http://localhost:5000/api/Booking \
 ## Change Log
 
 ### Version 1.0 (Current)
+
 - Initial API release
 - All core features implemented
 - JWT authentication with refresh tokens
@@ -2991,6 +3184,7 @@ curl -X POST http://localhost:5000/api/Booking \
 - Concurrency control for bookings
 
 ### Planned Features (Future)
+
 - Real-time notifications (WebSockets/SignalR)
 - Email notifications
 - SMS notifications
@@ -3069,6 +3263,7 @@ A: Admin accounts are created manually in the database or by existing admins. Th
 **1. Import Collection**
 
 Create a Postman collection with these variables:
+
 - `baseUrl`: `http://localhost:5000/api`
 - `accessToken`: (will be set after login)
 - `refreshToken`: (will be set after login)
@@ -3078,8 +3273,8 @@ Create a Postman collection with these variables:
 ```javascript
 // Auto-add token to requests
 pm.request.headers.add({
-    key: 'Authorization',
-    value: 'Bearer ' + pm.environment.get('accessToken')
+  key: "Authorization",
+  value: "Bearer " + pm.environment.get("accessToken"),
 });
 ```
 
@@ -3088,9 +3283,9 @@ pm.request.headers.add({
 ```javascript
 // Save tokens after login
 if (pm.response.code === 200) {
-    const response = pm.response.json();
-    pm.environment.set('accessToken', response.data.accessToken);
-    pm.environment.set('refreshToken', response.data.refreshToken);
+  const response = pm.response.json();
+  pm.environment.set("accessToken", response.data.accessToken);
+  pm.environment.set("refreshToken", response.data.refreshToken);
 }
 ```
 
@@ -3110,6 +3305,7 @@ if (pm.response.code === 200) {
 **Access:** `http://localhost:5000/swagger`
 
 **Steps:**
+
 1. Expand `Auth` section
 2. Execute `POST /api/Auth/login`
 3. Copy `accessToken` from response
@@ -3265,6 +3461,7 @@ echo "\nTest completed!"
 ### Prerequisites for Production
 
 1. **Environment Variables**
+
 ```bash
 export ConnectionStrings__DefaultConnection="Server=prod-server;Database=HomeMaintenanceDB;..."
 export JWT__Key="your-super-secret-key-min-32-characters"
@@ -3273,6 +3470,7 @@ export JWT__Audience="HomeServicesPlatformUsers"
 ```
 
 2. **Update appsettings.Production.json**
+
 ```json
 {
   "ConnectionStrings": {
@@ -3295,11 +3493,13 @@ export JWT__Audience="HomeServicesPlatformUsers"
 ### Deployment Steps
 
 **1. Build for Production**
+
 ```bash
 dotnet publish -c Release -o ./publish
 ```
 
 **2. Run Migrations**
+
 ```bash
 dotnet ef database update --connection "YourConnectionString"
 ```
@@ -3307,17 +3507,19 @@ dotnet ef database update --connection "YourConnectionString"
 **3. Configure IIS / Nginx / Apache**
 
 **IIS (Windows):**
+
 - Install .NET Hosting Bundle
 - Create Application Pool (.NET CLR Version: No Managed Code)
 - Point to published folder
 - Set environment to Production
 
 **Nginx (Linux):**
+
 ```nginx
 server {
     listen 80;
     server_name api.yourdomain.com;
-    
+
     location / {
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
@@ -3332,18 +3534,21 @@ server {
 ```
 
 **4. Setup SSL Certificate**
+
 ```bash
 # Using Let's Encrypt
 sudo certbot --nginx -d api.yourdomain.com
 ```
 
 **5. Configure Firewall**
+
 ```bash
 # Allow HTTP/HTTPS
 sudo ufw allow 'Nginx Full'
 ```
 
 **6. Setup Background Service (Linux)**
+
 ```bash
 sudo nano /etc/systemd/system/homeservices-api.service
 ```
@@ -3379,11 +3584,13 @@ sudo systemctl status homeservices-api.service
 ### Application Insights (Recommended)
 
 **1. Install Package**
+
 ```bash
 dotnet add package Microsoft.ApplicationInsights.AspNetCore
 ```
 
 **2. Configure in Program.cs**
+
 ```csharp
 builder.Services.AddApplicationInsightsTelemetry();
 ```
@@ -3391,6 +3598,7 @@ builder.Services.AddApplicationInsightsTelemetry();
 ### Custom Logging
 
 **Log Levels:**
+
 - **Trace**: Very detailed, not for production
 - **Debug**: Internal system events
 - **Information**: General flow
@@ -3399,6 +3607,7 @@ builder.Services.AddApplicationInsightsTelemetry();
 - **Critical**: Application crashes
 
 **Example:**
+
 ```csharp
 _logger.LogInformation("Booking {BookingId} created by {CustomerId}", bookingId, customerId);
 _logger.LogWarning("Slot {SlotId} booking attempt failed - already booked", slotId);
@@ -3412,11 +3621,13 @@ _logger.LogError(ex, "Payment processing failed for booking {BookingId}", bookin
 ### API Usage Terms
 
 **Allowed:**
+
 - ✅ Integration with your applications
 - ✅ Development and testing
 - ✅ Commercial use with proper authentication
 
 **Not Allowed:**
+
 - ❌ Reverse engineering the API
 - ❌ Excessive rate limiting abuse
 - ❌ Unauthorized access attempts
@@ -3443,7 +3654,7 @@ This comprehensive API documentation covers:
 ✅ **Data models** - Full entity specifications  
 ✅ **Best practices** - Security, performance, testing  
 ✅ **Deployment guide** - Production setup instructions  
-✅ **FAQ & troubleshooting** - Common issues and solutions  
+✅ **FAQ & troubleshooting** - Common issues and solutions
 
 ### Quick Start Reminder
 
