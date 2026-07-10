@@ -54,6 +54,22 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+// Enable CORS for React frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy =>
+        {
+            policy
+                .WithOrigins(
+                    "http://localhost:5174",
+                    "http://localhost:5173"
+                )
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
 builder.Services.AddControllers();
 // Register Payment Service
 builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.Services.PaymentService>();
@@ -121,6 +137,9 @@ app.UseGlobalExceptionHandling();
 
 // Configure the HTTP request pipeline.
 app.UseRouting();
+
+// Enable CORS
+app.UseCors("AllowReactApp");
 
 // Add Authentication and Authorization middleware
 app.UseAuthentication();
