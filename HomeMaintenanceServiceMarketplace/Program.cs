@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Application.Interfaces;
+using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Application.Services;
 using HomeServicesPlatform.Application.Services.Auth;
 using HomeServicesPlatform.Application.Services.CurrentUser;
@@ -113,6 +113,8 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 
  builder.Services.AddAutoMapper(typeof(MappingProfile));
 
+builder.Services.AddCors();
+
 var app = builder.Build();
 
 // ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====
@@ -120,6 +122,7 @@ var app = builder.Build();
 app.UseGlobalExceptionHandling();
 
 // Configure the HTTP request pipeline.
+app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 app.UseRouting();
 
 // Add Authentication and Authorization middleware
