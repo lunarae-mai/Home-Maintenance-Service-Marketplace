@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { TopNav } from "@/components/top-nav";
 import { useState } from "react";
 import api from "@/lib/api";
-import { ShieldCheck, AlertCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/admin_/login")({
   component: AdminLogin,
@@ -13,6 +13,7 @@ function AdminLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -100,21 +101,31 @@ function AdminLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@example.com"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-white/10 focus:border-cyan-500/50 focus:bg-white/10 focus:ring-4 focus:ring-cyan-500/10"
+                  className="w-full rounded-xl border border-white/10 bg-black px-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-black focus:border-cyan-500/50 focus:bg-black focus:ring-4 focus:ring-cyan-500/10"
                 />
               </div>
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-400">
                   Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-white/10 focus:border-cyan-500/50 focus:bg-white/10 focus:ring-4 focus:ring-cyan-500/10"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-xl border border-white/10 bg-black px-4 py-3.5 pr-12 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-black focus:border-cyan-500/50 focus:bg-black focus:ring-4 focus:ring-cyan-500/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 text-white hover:text-white/80 focus:outline-none z-20 p-1 rounded-md"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <button
                 type="submit"
