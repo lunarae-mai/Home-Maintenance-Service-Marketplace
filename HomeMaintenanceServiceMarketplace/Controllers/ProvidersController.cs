@@ -196,6 +196,7 @@ namespace HomeServicesPlatform.API.Controllers
         /// A paginated list of providers matching the specified criteria.
         /// </returns>
         [HttpGet("search")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)

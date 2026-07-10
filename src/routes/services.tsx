@@ -16,6 +16,8 @@ export const Route = createFileRoute("/services")({
 
 function Marketplace() {
   const search = Route.useSearch();
+  console.log("URL SEARCH PARAM:", search);
+
   const [selected, setSelected] = useState<string[]>(search.category ? [search.category] : []);
   const [availability, setAvailability] = useState<string>("any");
   const [services, setServices] = useState<any[]>([]);
@@ -25,11 +27,13 @@ function Marketplace() {
     const fetchData = async () => {
       try {
         const catsRes = await api.get("/Service/categories");
+        console.log("CATEGORIES API RESPONSE:", catsRes.data);
         if (catsRes.data.success) {
           setCategories(catsRes.data.data.map((c: any) => c.name));
         }
 
         const srvsRes = await api.get("/Service/search?pageSize=100");
+        console.log("SERVICES API RESPONSE:", srvsRes.data);
         if (srvsRes.data.success) {
           setServices(
             srvsRes.data.data.items.map((s: any) => ({
@@ -48,10 +52,24 @@ function Marketplace() {
     fetchData();
   }, []);
 
-  const filtered = useMemo(
-    () => (selected.length ? services.filter((s) => selected.includes(s.category)) : services),
-    [selected, services],
-  );
+  
+
+    const filtered = useMemo(() => {
+
+        console.log("CURRENT SELECTED:", selected);
+
+        console.log("ALL SERVICES:", services);
+
+        const result = selected.length
+            ? services.filter((s) => selected.includes(s.category))
+            : services;
+
+        console.log("FILTERED RESULT:", result);
+
+        return result;
+
+    }, [selected, services]);
+
 
   const toggle = (c: string) =>
     setSelected((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
