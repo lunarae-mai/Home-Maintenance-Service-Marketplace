@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { ThemeProvider } from "../lib/theme";
 
-
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -76,13 +75,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Home Services — Home Maintenance Marketplace" },
-      { name: "description", content: "Book vetted plumbers, electricians, cleaners, and painters. A modern marketplace for trusted home services." },
+      {
+        name: "description",
+        content:
+          "Book vetted plumbers, electricians, cleaners, and painters. A modern marketplace for trusted home services.",
+      },
       { name: "author", content: "Home Services" },
       { property: "og:title", content: "Home Services — Home Maintenance Marketplace" },
-      { property: "og:description", content: "Book vetted plumbers, electricians, cleaners, and painters." },
+      {
+        property: "og:description",
+        content: "Book vetted plumbers, electricians, cleaners, and painters.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-
     ],
     links: [
       {
@@ -123,4 +128,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

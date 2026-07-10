@@ -16,10 +16,16 @@ function LandingPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background"></div>
         <div className="relative mx-auto max-w-5xl px-6 text-center">
           <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl">
-            Home Maintanices <span className="bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent">market Place</span>.
+            Home Maintanices{" "}
+            <span className="bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent">
+              market Place
+            </span>
+            .
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground">
-            Experience elite maintenance delivered with precision. From intricate electrical work to premium interior painting, connect with high-fidelity providers through our obsidian-grade ecosystem.
+            Experience elite maintenance delivered with precision. From intricate electrical work to
+            premium interior painting, connect with high-fidelity providers through our
+            obsidian-grade ecosystem.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -103,7 +109,11 @@ function LandingPage() {
             />
           </div>
           <div className="relative aspect-square overflow-hidden rounded-3xl border border-border">
-            <img src="/electrical_sparks_1783625080777.png" alt="Electrical Sparks" className="h-full w-full object-cover" />
+            <img
+              src="/electrical_sparks_1783625080777.png"
+              alt="Electrical Sparks"
+              className="h-full w-full object-cover"
+            />
             <div className="absolute bottom-6 left-6 rounded-2xl border border-border bg-black/60 p-4 backdrop-blur-md">
               <div className="text-3xl font-bold text-white">98%</div>
               <div className="text-sm text-slate-300">Satisfaction Rating</div>
@@ -124,36 +134,83 @@ function LandingPage() {
                 Home Services
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground max-w-sm">
-                The world's most advanced marketplace for elite home maintenance. Precision, security, and excellence delivered directly to your door.
+                The world's most advanced marketplace for elite home maintenance. Precision,
+                security, and excellence delivered directly to your door.
               </p>
             </div>
             <div>
               <h3 className="mb-4 text-sm font-semibold text-foreground">Services</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link to="/services" className="hover:text-primary transition">Plumbing & HVAC</Link></li>
-                <li><Link to="/services" className="hover:text-primary transition">Electrical Systems</Link></li>
-                <li><Link to="/services" className="hover:text-primary transition">Sanitation & Care</Link></li>
-                <li><Link to="/services" className="hover:text-primary transition">Architectural Finishes</Link></li>
-                <li><Link to="/services" className="hover:text-primary transition">Smart Home Integration</Link></li>
+                <li>
+                  <Link to="/services" className="hover:text-primary transition">
+                    Plumbing & HVAC
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/services" className="hover:text-primary transition">
+                    Electrical Systems
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/services" className="hover:text-primary transition">
+                    Sanitation & Care
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/services" className="hover:text-primary transition">
+                    Architectural Finishes
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/services" className="hover:text-primary transition">
+                    Smart Home Integration
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="mb-4 text-sm font-semibold text-foreground">Legal & Providers</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
-                <li><Link to="/auth" className="hover:text-primary transition">Provider Portal</Link></li>
-                <li><Link to="/" className="hover:text-primary transition">Certification Standards</Link></li>
-                <li><Link to="/" className="hover:text-primary transition">Privacy Policy</Link></li>
-                <li><Link to="/" className="hover:text-primary transition">Terms of Service</Link></li>
-                <li><Link to="/" className="hover:text-primary transition">Liability Protection</Link></li>
+                <li>
+                  <Link to="/auth" className="hover:text-primary transition">
+                    Provider Portal
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary transition">
+                    Certification Standards
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary transition">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary transition">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/" className="hover:text-primary transition">
+                    Liability Protection
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
           <div className="mt-16 flex flex-col md:flex-row items-center justify-between border-t border-border pt-8 text-xs text-muted-foreground">
             <p>© 2026 Home Services Marketplace. All rights reserved.</p>
             <div className="mt-4 md:mt-0 flex gap-6">
-              <Link to="/" className="hover:text-foreground">Security</Link>
-              <Link to="/" className="hover:text-foreground">Global Network</Link>
-              <Link to="/" className="hover:text-foreground">Cookie Settings</Link>
+              <Link to="/" className="hover:text-foreground">
+                Security
+              </Link>
+              <Link to="/" className="hover:text-foreground">
+                Global Network
+              </Link>
+              <Link to="/" className="hover:text-foreground">
+                Cookie Settings
+              </Link>
             </div>
           </div>
         </div>
@@ -164,9 +221,17 @@ function LandingPage() {
 
 function ServiceCard({ title, description, icon: Icon, image, categoryId }: any) {
   return (
-    <Link to="/services" search={{ category: title }} className="group relative overflow-hidden rounded-3xl border border-border bg-surface block">
+    <Link
+      to="/services"
+      search={{ category: title }}
+      className="group relative overflow-hidden rounded-3xl border border-border bg-surface block"
+    >
       <div className="aspect-[16/9] w-full overflow-hidden bg-black">
-        <img src={image} alt={title} className="h-full w-full object-cover opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-80" />
+        <img
+          src={image}
+          alt={title}
+          className="h-full w-full object-cover opacity-60 transition duration-700 group-hover:scale-105 group-hover:opacity-80"
+        />
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
       <div className="absolute bottom-0 p-8 w-full pointer-events-none">
@@ -197,13 +262,14 @@ function ProviderCard({ initial, name, rating, bookings, desc }: any) {
             </div>
           </div>
         </div>
-        <Link to="/services" className="text-sm font-semibold text-cyan-500 transition hover:text-cyan-400">
+        <Link
+          to="/services"
+          className="text-sm font-semibold text-cyan-500 transition hover:text-cyan-400"
+        >
           Book Now
         </Link>
       </div>
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        {desc}
-      </p>
+      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{desc}</p>
     </div>
   );
 }
