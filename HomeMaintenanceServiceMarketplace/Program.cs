@@ -24,7 +24,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5137")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -66,7 +66,11 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 // Register Payment Service
 builder.Services.AddScoped<IPaymentService, HomeServicesPlatform.Infrastructure.Services.PaymentService>();
@@ -130,11 +134,13 @@ var app = builder.Build();
 // This must be FIRST in the pipeline to catch all exceptions
 app.UseGlobalExceptionHandling();
 
-// ===== ACTIVATE CORS POLICY =====
-app.UseRouting();
 
 // Configure the HTTP request pipeline.
 app.UseCors("AllowFrontend");
+
+// ===== ACTIVATE CORS POLICY =====
+app.UseRouting();
+
 
 // Add Authentication and Authorization middleware
 app.UseAuthentication();

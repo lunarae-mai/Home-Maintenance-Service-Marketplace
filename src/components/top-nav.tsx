@@ -18,12 +18,17 @@ export function TopNav() {
 
   // Modal States
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState<"profile" | "password">("profile");
+  const [activeSubTab, setActiveSubTab] = useState<"profile" | "password" | "bookings">("profile");
 
   // Form States
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [userId, setUserId] = useState("");
+
+  const [activeBookings, setActiveBookings] = useState<any[]>([]);
+  const [pastBookings, setPastBookings] = useState<any[]>([]);
+  const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -31,6 +36,28 @@ export function TopNav() {
 
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isSaving, setIsSaving] = useState(false);
+
+  const fetchCustomerBookings = async (uid: string) => {
+    if (!uid) return;
+    setIsLoadingBookings(true);
+    try {
+      const res = await api.get(`/Booking/customer/${uid}/history`);
+      if (res.data.success) {
+        setActiveBookings(res.data.data.activeBookings || []);
+        setPastBookings(res.data.data.pastBookings || []);
+      }
+    } catch (err) {
+      console.error("Failed to load customer booking history", err);
+    } finally {
+      setIsLoadingBookings(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showProfileModal && userId && activeSubTab === "bookings") {
+      fetchCustomerBookings(userId);
+    }
+  }, [activeSubTab, showProfileModal, userId]);
 
   // Fetch Customer Profile on Modal Open
   useEffect(() => {
@@ -44,6 +71,8 @@ export function TopNav() {
           setName(u.name || "");
           setEmail(u.email || "");
           setPhone(u.phone || "");
+          setUserId(u.id || "");
+          fetchCustomerBookings(u.id || "");
         }
       } catch (err) {
         console.error("Failed to load customer profile", err);
@@ -213,13 +242,13 @@ export function TopNav() {
             </div>
 
             {/* Tab selection */}
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 dark:bg-slate-800/60 p-1 border border-slate-200/50 dark:border-slate-800/50">
+            <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 dark:bg-slate-800/60 p-1 border border-slate-200/50 dark:border-slate-800/50">
               <button
                 onClick={() => {
                   setActiveSubTab("profile");
                   setMessage({ type: "", text: "" });
                 }}
-                className={`rounded-lg py-2 text-xs font-bold tracking-wider uppercase transition cursor-pointer ${
+                className={`rounded-lg py-2 text-[10px] font-bold tracking-wider uppercase transition cursor-pointer ${
                   activeSubTab === "profile"
                     ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -229,16 +258,29 @@ export function TopNav() {
               </button>
               <button
                 onClick={() => {
+                  setActiveSubTab("bookings");
+                  setMessage({ type: "", text: "" });
+                }}
+                className={`rounded-lg py-2 text-[10px] font-bold tracking-wider uppercase transition cursor-pointer ${
+                  activeSubTab === "bookings"
+                    ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                My Bookings
+              </button>
+              <button
+                onClick={() => {
                   setActiveSubTab("password");
                   setMessage({ type: "", text: "" });
                 }}
-                className={`rounded-lg py-2 text-xs font-bold tracking-wider uppercase transition cursor-pointer ${
+                className={`rounded-lg py-2 text-[10px] font-bold tracking-wider uppercase transition cursor-pointer ${
                   activeSubTab === "password"
                     ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm border border-slate-200/50 dark:border-slate-700/50"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                Security & Password
+                Security
               </button>
             </div>
 
@@ -310,6 +352,101 @@ export function TopNav() {
                   {isSaving ? "Saving..." : "Save Profile Details"}
                 </button>
               </form>
+            )}
+
+            {activeSubTab === "bookings" && (
+              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                {isLoadingBookings ? (
+                  <div className="py-12 flex justify-center items-center">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold animate-pulse">Loading booking history...</span>
+                  </div>
+                ) : activeBookings.length === 0 && pastBookings.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-slate-400 dark:text-slate-650" />
+                    <p className="text-sm font-semibold">No bookings found</p>
+                    <p className="text-xs mt-1">Vetted specialists will show up here once booked.</p>
+                  </div>
+                ) : (
+                  <>
+                    {activeBookings.length > 0 && (
+                      <div className="space-y-3.5">
+                        <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Active Requests</h4>
+                        {activeBookings.map((b) => (
+                          <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
+                                  Specialist: {b.provider?.user?.name || "Professional"}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
+                                b.status === "Pending" || b.status === 0
+                                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-350"
+                                  : b.status === "Confirmed" || b.status === 1
+                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-350"
+                                  : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-350"
+                              }`}>
+                                {b.statusLabel || (b.status === 0 ? "Pending" : b.status === 1 ? "Confirmed" : "In Progress")}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-450 font-medium">
+                              Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime.substring(0, 5)}` : "Not assigned"}
+                            </div>
+                            {b.notes && (
+                              <p className="text-[10px] italic text-slate-400 bg-slate-100 dark:bg-slate-850 p-2 rounded-lg">
+                                Your Note: "{b.notes}"
+                              </p>
+                            )}
+                            {b.providerNotes && (
+                              <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
+                                <p className="font-bold text-violet-600 dark:text-violet-455 mb-0.5">Note from Provider:</p>
+                                <p className="italic">"{b.providerNotes}"</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {pastBookings.length > 0 && (
+                      <div className="space-y-3.5 pt-2">
+                        <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Past Bookings</h4>
+                        {pastBookings.map((b) => (
+                          <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-75 space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
+                                  Specialist: {b.provider?.user?.name || "Professional"}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
+                                b.status === "Completed" || b.status === 3 || b.status === 4 || b.status === "Paid"
+                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-355"
+                                  : b.status === "Cancelled" || b.status === 5
+                                  ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-350"
+                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-350"
+                              }`}>
+                                {b.statusLabel || (b.status === 3 || b.status === 4 ? "Completed" : b.status === 5 ? "Cancelled" : "Rejected")}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-455 font-medium">
+                              Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime.substring(0, 5)}` : "Not assigned"}
+                            </div>
+                            {b.providerNotes && (
+                              <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
+                                <p className="font-bold text-violet-605 dark:text-violet-455 mb-0.5">Note from Provider:</p>
+                                <p className="italic">"{b.providerNotes}"</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
 
             {activeSubTab === "password" && (

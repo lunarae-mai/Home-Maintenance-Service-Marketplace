@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Application.DTOs.Booking;
+using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Enums;
 using HomeServicesPlatform.Domain.Models;
@@ -104,12 +104,13 @@ namespace HomeServicesPlatform.Application.Services
         
 
         // Pending → Confirmed  (provider accepts the booking)
-        public async Task<BookingResponseDto> ConfirmBookingAsync(int bookingId)
+        public async Task<BookingResponseDto> ConfirmBookingAsync(int bookingId, string providerNotes = "")
         {
             var booking = await GetBookingOrThrowAsync(bookingId);
             EnsureStatus(booking, BookingStatus.Pending, "confirm");
 
             booking.Status = BookingStatus.Confirmed;
+            booking.ProviderNotes = providerNotes;
             _bookingRepository.Update(booking);
             await _context.SaveChangesAsync();
 
@@ -228,6 +229,7 @@ namespace HomeServicesPlatform.Application.Services
             ServiceId = b.ServiceId,
             SlotId = b.SlotId,
             Notes = b.Notes,
+            ProviderNotes = b.ProviderNotes,
             Status = b.Status,
             StatusLabel = b.Status.ToString(),
             CreatedAt = b.CreatedAt
@@ -310,6 +312,11 @@ namespace HomeServicesPlatform.Application.Services
                 b.Status == BookingStatus.Completed ||
                 b.Status == BookingStatus.Paid ||
                 b.Status == BookingStatus.Cancelled);
+        }
+
+        public async Task<IEnumerable<Booking>> GetProviderBookingsAsync(int providerId)
+        {
+            return await _bookingRepository.GetBookingsByProviderAsync(providerId);
         }
     }
 }

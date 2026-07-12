@@ -1,7 +1,11 @@
-﻿using HomeServicesPlatform.Application.DTOs.Common;
+using HomeServicesPlatform.Application.DTOs.Common;
 using HomeServicesPlatform.Application.DTOs.Service;
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace HomeServicesPlatform.API.Controllers
 {
@@ -13,10 +17,17 @@ namespace HomeServicesPlatform.API.Controllers
     public class ServiceController : ControllerBase
     {
         private readonly IServiceService _serviceService;
+        private readonly IAppDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public ServiceController(IServiceService serviceService)
+        public ServiceController(
+            IServiceService serviceService,
+            IAppDbContext context,
+            ICurrentUserService currentUserService)
         {
             _serviceService = serviceService;
+            _context = context;
+            _currentUserService = currentUserService;
         }
 
         /// <summary>
@@ -104,5 +115,65 @@ namespace HomeServicesPlatform.API.Controllers
                 Data = result
             });
         }
+
+        /// <summary>
+        /// Updates a provider's service configuration base price and details.
+        /// </summary>
+        [HttpPut("edit")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> EditProviderService([FromBody] EditProviderServiceDto dto)
+        {
+            var userId = _currentUserService.UserId;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+            }
+
+            var provider = await _context.ProviderProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            if (provider == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider profile not found."
+                });
+            }
+
+            var providerService = await _context.ProviderServices
+                .FirstOrDefaultAsync(ps => ps.ProviderId == provider.Id && ps.ServiceId == dto.ServiceId);
+
+            if (providerService == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Service not found in provider profile."
+                });
+            }
+
+            providerService.BasePrice = dto.BasePrice;
+            providerService.PriceType = dto.Description ?? string.Empty;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Provider service updated successfully."
+            });
+        }
+    }
+
+    public class EditProviderServiceDto
+    {
+        public int ServiceId { get; set; }
+        public decimal BasePrice { get; set; }
+        public string Description { get; set; } = string.Empty;
     }
 }

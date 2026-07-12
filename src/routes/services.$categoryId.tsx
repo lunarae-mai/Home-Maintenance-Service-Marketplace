@@ -186,9 +186,9 @@ function CategoryDetails() {
                           </div>
                           <div className="flex sm:flex-col justify-end items-center sm:items-end gap-3 shrink-0">
                             <Link
-                              to="/providers/$serviceId"
+                              to="/services/$serviceId/providers"
                               params={{ serviceId: service.id.toString() }}
-                              className="w-full sm:w-auto text-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+                              className="w-full sm:w-auto text-center rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white px-4 py-2 text-sm font-bold shadow hover:scale-[1.02] active:scale-95 transition-all duration-300"
                             >
                               View Profile
                             </Link>
