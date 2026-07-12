@@ -225,6 +225,56 @@ namespace HomeServicesPlatform.API.Controllers
         }
 
         /// <summary>
+        /// Retrieves detailed information about a specific provider profile, including reviews.
+        /// </summary>
+        [HttpGet("{providerId:int}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetProviderDetails(int providerId)
+        {
+            var provider = await _context.ProviderProfiles
+                .Where(p => p.Id == providerId)
+                .Select(p => new
+                {
+                    Id = p.Id,
+                    Name = p.User.Name,
+                    Bio = p.Bio,
+                    Email = p.User.Email,
+                    Phone = p.User.Phone,
+                    Experience = p.Experience,
+                    AvgRating = p.AvgRating,
+                    Status = p.Status.ToString(),
+                    Reviews = _context.Reviews
+                        .Where(r => r.RevieweeId == p.UserId && r.ReviewerType == "Customer")
+                        .Select(r => new
+                        {
+                            Id = r.Id,
+                            ReviewerName = r.Reviewer.Name,
+                            Rating = r.Rating,
+                            Comment = r.Comment,
+                            CreatedAt = r.CreatedAt
+                        })
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (provider == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider not found."
+                });
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Provider details retrieved successfully.",
+                Data = provider
+            });
+        }
+
+        /// <summary>
         /// Updates the authenticated provider's name and bio.
         /// </summary>
         [HttpPut("profile")]

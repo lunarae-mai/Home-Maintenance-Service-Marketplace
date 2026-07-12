@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Domain.Models;
+using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Domain.Common;
 using HomeServicesPlatform.Domain.Enums;
 namespace HomeServicesPlatform.Domain.Models
@@ -8,6 +8,7 @@ namespace HomeServicesPlatform.Domain.Models
         // BookingStatus: 0=Pending, 1=Confirmed, 2=Completed, 3=Paid
         public BookingStatus Status { get; set; } = BookingStatus.Pending;
         public string Notes { get; set; } = string.Empty;
+        public string ProviderNotes { get; set; } = string.Empty;
 
         // Foreign Keys
         public string CustomerId { get; set; } = string.Empty;

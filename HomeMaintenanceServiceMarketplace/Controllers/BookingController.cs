@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -58,10 +58,16 @@ public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
 
     [HttpPut("{id}/confirm")]
     [Authorize(Roles = "Provider")]   
-    public async Task<IActionResult> ConfirmBooking(int id)
+    public async Task<IActionResult> ConfirmBooking(int id, [FromBody] ConfirmBookingRequestDto? dto)
     {
-        var result = await _bookingService.ConfirmBookingAsync(id);
-        return Ok(result);
+        var notes = dto?.ProviderNotes ?? string.Empty;
+        var result = await _bookingService.ConfirmBookingAsync(id, notes);
+        return Ok(new ApiResponse<object>
+        {
+            Success = true,
+            Message = "Booking confirmed successfully.",
+            Data = result
+        });
     }
 
     // StartBooking and CompleteBooking follow the exact same pattern
@@ -178,5 +184,23 @@ public async Task<IActionResult> GetIncomingRequests(int providerId)
         Data = schedule
     });
         }
+
+    [HttpGet("provider/{providerId}/bookings")]
+    [Authorize(Roles = "Provider")]
+    public async Task<IActionResult> GetProviderBookings(int providerId)
+    {
+        var bookings = await _bookingService.GetProviderBookingsAsync(providerId);
+        return Ok(new ApiResponse<object>
+        {
+            Success = true,
+            Message = "Bookings retrieved successfully.",
+            Data = bookings
+        });
+    }
+    }
+
+    public class ConfirmBookingRequestDto
+    {
+        public string ProviderNotes { get; set; } = string.Empty;
     }
 }

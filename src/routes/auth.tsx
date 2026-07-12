@@ -71,6 +71,19 @@ function AuthPage() {
           } else if (role === "Provider") {
             navigate({ to: "/provider-dashboard" });
           } else {
+            const savedBooking = sessionStorage.getItem("savedBookingState");
+            if (savedBooking) {
+              try {
+                const state = JSON.parse(savedBooking);
+                navigate({
+                  to: "/services/$serviceId/providers",
+                  params: { serviceId: state.serviceId.toString() },
+                });
+                return;
+              } catch (e) {
+                console.error("Failed to parse saved booking state", e);
+              }
+            }
             navigate({ to: "/" });
           }
         }
@@ -155,6 +168,19 @@ function AuthPage() {
           if (res.data.success) {
             localStorage.setItem("accessToken", res.data.data.accessToken);
             localStorage.setItem("refreshToken", res.data.data.refreshToken);
+            const savedBooking = sessionStorage.getItem("savedBookingState");
+            if (savedBooking) {
+              try {
+                const state = JSON.parse(savedBooking);
+                navigate({
+                  to: "/services/$serviceId/providers",
+                  params: { serviceId: state.serviceId.toString() },
+                });
+                return;
+              } catch (e) {
+                console.error("Failed to parse saved booking state", e);
+              }
+            }
             navigate({ to: "/" });
           }
         }

@@ -16,6 +16,9 @@ import {
   Phone,
   Briefcase,
   Lock,
+  Clock,
+  Loader2,
+  DollarSign,
 } from "lucide-react";
 import api from "@/lib/api";
 
@@ -28,6 +31,7 @@ const NAV = [
   { label: "Analytics", icon: BarChart3 },
   { label: "Bookings", icon: CalendarCheck },
   { label: "Payments", icon: Wallet },
+  { label: "Availability", icon: Clock },
   { label: "Profile", icon: UserCog },
   { label: "Settings", icon: Settings },
 ];
@@ -79,9 +83,34 @@ function ProviderDashboard() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | "">("");
   const [selectedServiceId, setSelectedServiceId] = useState<number | "">("");
   const [serviceDetails, setServiceDetails] = useState("");
-  const [servicePrice, setServicePrice] = useState("50.00");
+  const [servicePrice, setServicePrice] = useState("50");
+  const [manualPriceAdd, setManualPriceAdd] = useState(false);
   const [allServicesList, setAllServicesList] = useState<any[]>([]);
-  const [slotGenLoading, setSlotGenLoading] = useState(false);
+  
+  // Edit Service Modal States
+  const [showEditService, setShowEditService] = useState(false);
+  const [editServiceId, setEditServiceId] = useState<number | null>(null);
+  const [editServicePrice, setEditServicePrice] = useState("50");
+  const [editServiceDetails, setEditServiceDetails] = useState("");
+  const [manualEditPriceAdd, setManualEditPriceAdd] = useState(false);
+
+  // Availability Management States
+  const [availList, setAvailList] = useState<any[]>([]);
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
+  const [availStartTime, setAvailStartTime] = useState("09:00");
+  const [availEndTime, setAvailEndTime] = useState("17:00");
+
+  const daysOfWeekOptions = [
+    { label: "Sunday", value: 0 },
+    { label: "Monday", value: 1 },
+    { label: "Tuesday", value: 2 },
+    { label: "Wednesday", value: 3 },
+    { label: "Thursday", value: 4 },
+    { label: "Friday", value: 5 },
+    { label: "Saturday", value: 6 }
+  ];
+
+  const isSuspended = profile?.status === "Suspended";
 
   const fetchProfileAndBookings = async () => {
     try {
@@ -97,20 +126,11 @@ function ProviderDashboard() {
         const pId = profData.id || 5;
         setProviderId(pId);
 
-        // Fetch incoming and today schedule
-        const [incoming, today] = await Promise.all([
-          api.get(`/Booking/provider/${pId}/incoming-requests`),
-          api.get(`/Booking/provider/${pId}/today-schedule`),
-        ]);
-
-        let allBookings: Booking[] = [];
-        if (incoming.data.success) allBookings = [...allBookings, ...incoming.data.data];
-        if (today.data.success) {
-          const existingIds = new Set(allBookings.map((b) => b.id));
-          const newToday = today.data.data.filter((b: Booking) => !existingIds.has(b.id));
-          allBookings = [...allBookings, ...newToday];
+        // Fetch comprehensive list of bookings for the provider
+        const res = await api.get(`/Booking/provider/${pId}/bookings`);
+        if (res.data.success) {
+          setBookings(res.data.data);
         }
-        setBookings(allBookings);
       }
     } catch (err) {
       console.error("Could not load data from backend.", err);
@@ -119,6 +139,8 @@ function ProviderDashboard() {
 
   useEffect(() => {
     fetchProfileAndBookings();
+    const interval = setInterval(fetchProfileAndBookings, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -173,9 +195,36 @@ function ProviderDashboard() {
     fetchServices();
   }, [selectedCategoryId]);
 
-  const changeStatus = async (id: number, action: "confirm" | "reject" | "start" | "complete") => {
+  const fetchAvailability = async () => {
     try {
-      await api.put(`/Booking/${id}/${action}`);
+      const res = await api.get("/Slots/availability");
+      if (res.data.success) {
+        setAvailList(res.data.data.map((item: any) => ({
+          dayOfWeek: item.dayOfWeek,
+          startTime: item.startTime.substring(0, 5),
+          endTime: item.endTime.substring(0, 5)
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to fetch availability", err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "Availability") {
+      fetchAvailability();
+    }
+  }, [activeTab]);
+
+  const changeStatus = async (id: number, action: "confirm" | "reject" | "start" | "complete") => {
+    if (isSuspended) return;
+    try {
+      let body: any = null;
+      if (action === "confirm") {
+        const providerNotes = window.prompt("Optional notes for the customer (e.g., 'I will arrive with my tools at 10 AM'):", "") ?? "";
+        body = { providerNotes };
+      }
+      await api.put(`/Booking/${id}/${action}`, body);
 
       const newStatusMap: Record<string, string> = {
         confirm: "Confirmed",
@@ -198,6 +247,7 @@ function ProviderDashboard() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuspended) return;
     setStatusMessage({ type: "", text: "" });
     try {
       const res = await api.put("/Providers/profile", {
@@ -218,6 +268,7 @@ function ProviderDashboard() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuspended) return;
     setStatusMessage({ type: "", text: "" });
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setStatusMessage({ type: "error", text: "New passwords do not match." });
@@ -250,6 +301,7 @@ function ProviderDashboard() {
 
   const handleAddService = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSuspended) return;
     if (!selectedServiceId) {
       alert("Please select a service.");
       return;
@@ -257,7 +309,7 @@ function ProviderDashboard() {
     try {
       const res = await api.post("/Providers/services", {
         serviceId: Number(selectedServiceId),
-        basePrice: parseFloat(servicePrice) || 50.0,
+        basePrice: parseInt(servicePrice) || 50,
         details: serviceDetails,
       });
       alert(res.data.message || "Service added successfully!");
@@ -265,14 +317,44 @@ function ProviderDashboard() {
       setSelectedCategoryId("");
       setSelectedServiceId("");
       setServiceDetails("");
-      setServicePrice("50.00");
+      setServicePrice("50");
+      setManualPriceAdd(false);
       fetchProfileAndBookings();
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to add service.");
     }
   };
 
+  const handleOpenEditService = (s: any) => {
+    if (isSuspended) return;
+    setEditServiceId(s.serviceId);
+    setEditServicePrice(Math.round(s.basePrice).toString());
+    setEditServiceDetails(s.details || "");
+    setManualEditPriceAdd(false);
+    setShowEditService(true);
+  };
+
+  const handleEditServiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSuspended) return;
+    if (!editServiceId) return;
+    try {
+      const res = await api.put("/Service/edit", {
+        serviceId: Number(editServiceId),
+        basePrice: parseInt(editServicePrice) || 50,
+        description: editServiceDetails,
+      });
+      alert(res.data.message || "Service updated successfully!");
+      setShowEditService(false);
+      setManualEditPriceAdd(false);
+      fetchProfileAndBookings();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to update service.");
+    }
+  };
+
   const handleDeleteService = async (serviceId: number) => {
+    if (isSuspended) return;
     if (!confirm("Are you sure you want to remove this service?")) return;
     try {
       const res = await api.delete(`/Providers/services/${serviceId}`);
@@ -283,355 +365,479 @@ function ProviderDashboard() {
     }
   };
 
-  const handleGenerateSlots = async () => {
-    setSlotGenLoading(true);
+  // Availability weekly handlers
+  const handleToggleDay = (dayVal: number) => {
+    if (isSuspended) return;
+    setSelectedDays(prev => 
+      prev.includes(dayVal) ? prev.filter(d => d !== dayVal) : [...prev, dayVal]
+    );
+  };
+
+  const handleAddSlotWindow = () => {
+    if (isSuspended) return;
+    if (selectedDays.length === 0) {
+      alert("Please select at least one day of the week.");
+      return;
+    }
+    if (availStartTime >= availEndTime) {
+      alert("Start time must be before end time.");
+      return;
+    }
+
+    const newWindows = selectedDays.map(day => ({
+      dayOfWeek: day,
+      startTime: availStartTime,
+      endTime: availEndTime
+    }));
+
+    setAvailList(prev => {
+      const merged = [...prev];
+      newWindows.forEach(nw => {
+        const exists = merged.some(m => m.dayOfWeek === nw.dayOfWeek && m.startTime === nw.startTime && m.endTime === nw.endTime);
+        if (!exists) merged.push(nw);
+      });
+      return merged;
+    });
+
+    setSelectedDays([]);
+  };
+
+  const handleRemoveSlotWindow = (index: number) => {
+    if (isSuspended) return;
+    setAvailList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitWeeklySchedule = async () => {
+    if (isSuspended) return;
+    if (availList.length === 0) {
+      alert("Please add at least one availability window before submitting.");
+      return;
+    }
     try {
-      const res = await api.post("/Slots/generate?daysAhead=7");
-      alert(res.data.message || "Time slots generated successfully!");
+      const payload = {
+        slots: availList.map(item => ({
+          dayOfWeek: item.dayOfWeek,
+          startTime: `${item.startTime}:00`,
+          endTime: `${item.endTime}:00`
+        }))
+      };
+
+      const res = await api.post("/Availability/slots", payload);
+      alert(res.data.message || "Weekly availability saved and time slots published successfully!");
+      fetchAvailability();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to generate time slots.");
-    } finally {
-      setSlotGenLoading(false);
+      alert(err.response?.data?.message || "Failed to update weekly availability.");
     }
   };
 
   // Math metrics for Analytics
   const completedJobs = bookings.filter((b) => b.status === "Completed");
   const totalEarnings = completedJobs.reduce((acc, b) => acc + (b.service?.price || 50.0), 0);
-  const activeJobs = bookings.filter((b) => b.status === "InProgress" || b.status === "Confirmed").length;
-  const completionRate = bookings.length ? Math.round((completedJobs.length / bookings.length) * 100) : 100;
 
   return (
-    <div className="flex min-h-screen bg-[#09090b] text-slate-200 font-sans selection:bg-purple-500/30">
-      {/* Decorative Blur Background Blobs */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/10 blur-[120px]" />
-      </div>
+    <div className="min-h-screen bg-[#07070a] text-slate-200 font-sans selection:bg-purple-500/30 flex">
+      {/* Sidebar Panel */}
+      <aside className="w-64 border-r border-white/5 bg-black/40 backdrop-blur-md flex flex-col justify-between p-6 shrink-0">
+        <div>
+          <Link to="/" className="flex items-center gap-2 mb-8 group">
+            <Home className="h-6 w-6 text-purple-500 transition-transform group-hover:scale-110" />
+            <span className="font-extrabold text-white text-lg tracking-wider">HOMS PRO</span>
+          </Link>
 
-      <aside className="relative z-10 hidden w-64 shrink-0 border-r border-white/10 bg-black/40 p-6 backdrop-blur-2xl lg:flex lg:flex-col">
-        <Link to="/" className="mb-8 flex items-center gap-3 group">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-500/25 transition-transform group-hover:scale-105">
-            <Home className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="font-bold tracking-tight text-white">Provider Console</h2>
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">Home Services</p>
-          </div>
-        </Link>
+          <nav className="space-y-1.5">
+            {NAV.map((n) => (
+              <button
+                key={n.label}
+                onClick={() => setActiveTab(n.label)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                  activeTab === n.label
+                    ? "bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white shadow-lg shadow-purple-600/20"
+                    : "text-slate-400 hover:text-white hover:bg-purple-600/10 hover:shadow-[0_0_10px_rgba(168,85,247,0.1)]"
+                }`}
+              >
+                <n.icon className={`h-4 w-4 ${activeTab === n.label ? "text-white" : "opacity-70"}`} />
+                {n.label}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-        <nav className="flex-1 space-y-1">
-          {NAV.map((n) => (
-            <button
-              key={n.label}
-              onClick={() => {
-                setActiveTab(n.label);
-                setStatusMessage({ type: "", text: "" });
-              }}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 ${
-                activeTab === n.label
-                  ? "bg-white/10 text-white shadow-inner border border-white/5"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
-              }`}
-            >
-              <n.icon className={`h-4 w-4 ${activeTab === n.label ? "text-purple-400" : "opacity-70"}`} />
-              {n.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Verification status</p>
-            <p className={`mt-1.5 text-xs font-bold tracking-wider ${approved ? "text-emerald-400" : "text-amber-400"}`}>
-              {approved ? "• SYSTEM APPROVED" : "• PENDING APPROVAL"}
-            </p>
+        <div className="space-y-4 mt-auto">
+          {/* Relocated Verification Badge */}
+          <div className="px-4 py-2.5 rounded-xl border border-white/5 bg-white/[0.02] flex items-center gap-2.5">
+            <span className={`h-2 w-2 rounded-full shrink-0 ${
+              profile?.status === "Approved" 
+                ? "bg-emerald-500" 
+                : profile?.status === "Suspended" 
+                  ? "bg-red-750" 
+                  : "bg-amber-500 animate-pulse"
+            }`} />
+            <span className="text-[11px] font-bold text-slate-350 uppercase tracking-wider">
+              {profile?.status === "PendingApproval" ? "In Review" : profile?.status || "Pending"}
+            </span>
           </div>
 
+          {/* REDESIGNED Pill-Shaped Red exit bubble */}
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all duration-300"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-full border border-rose-500/30 bg-rose-500/10 text-sm font-extrabold text-rose-400 hover:bg-rose-600 hover:text-white hover:shadow-[0_0_20px_rgba(244,63,94,0.3)] transition-all duration-300 active:scale-95"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4 shrink-0" />
             Sign Out
           </button>
         </div>
       </aside>
 
-      <main className="relative z-10 flex-1 overflow-y-auto">
-        {!approved && (
-          <div className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-3.5 text-sm text-amber-200 backdrop-blur-md">
-            <div className="mx-auto flex max-w-6xl items-center gap-3">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
-              <p className="flex-1">
-                Your account is currently pending admin approval. You will gain full access once approved.
-              </p>
-            </div>
-          </div>
-        )}
+      {/* Main Container */}
+      <main className="flex-1 overflow-y-auto px-10 py-8 relative">
+        {/* Background blobs */}
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
 
-        <div className="mx-auto max-w-6xl px-8 py-10">
-          {/* HEADER */}
-          <div className="mb-10 flex items-end justify-between">
+        <div className="relative z-10 space-y-8">
+          {/* Top Header Banner */}
+          <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-white/5">
             <div>
-              <p className="text-xs uppercase tracking-widest text-purple-400 font-semibold">{activeTab} View</p>
-              <h1 className="mt-1 text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                {activeTab === "Dashboard" ? "Booking pipeline" : activeTab}
-              </h1>
+              <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                {activeTab === "Dashboard" ? "Booking Pipeline" : activeTab}
+              </h2>
+              <p className="text-slate-400 text-xs mt-1">Management Console for Home Maintenance Experts</p>
             </div>
-          </div>
+          </header>
 
-          {/* TAB CONTENT */}
+          {/* STRICT ACCOUNT SUSPENDED BANNER */}
+          {isSuspended && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5 flex items-start gap-4 text-red-200 animate-pulse shadow-lg">
+              <AlertTriangle className="h-6 w-6 shrink-0 text-red-500" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Account Status: Suspended</h4>
+                <p className="text-xs text-red-300/80 leading-relaxed mt-1">
+                  Your account is suspended. Please contact administration. All edits, slot updates, booking acceptances, and service configurations are frozen.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* DASHBOARD TAB VIEW */}
           {activeTab === "Dashboard" && (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-4">
-              {COLUMNS.map((col) => {
-                const items = bookings.filter((b) => b.status === col);
-                return (
-                  <div key={col} className="rounded-2xl border border-white/10 bg-black/40 p-5 backdrop-blur-md">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                        {col}
-                      </h3>
-                      <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white">
-                        {items.length}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {items.length === 0 && (
-                        <p className="rounded-xl border border-dashed border-white/10 py-10 text-center text-xs text-slate-500">
-                          No {col.toLowerCase()} jobs
-                        </p>
-                      )}
-                      {items.map((b) => (
-                        <div
-                          key={b.id}
-                          className="rounded-xl border border-white/5 bg-white/5 p-4 shadow-lg hover:border-white/15 transition-all duration-300"
-                        >
-                          <p className="text-sm font-bold text-white">{b.customer?.name || "Anonymous Client"}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{b.service?.name || "Home Service"}</p>
-                          {b.notes && (
-                            <p className="text-xs text-slate-500 italic mt-1.5 border-l-2 border-purple-500/30 pl-2">
-                              "{b.notes}"
-                            </p>
-                          )}
-                          <p className="mt-2.5 text-xs font-medium text-cyan-400">
-                            {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} | ${b.slot.startTime} - ${b.slot.endTime}` : "Scheduled Time"}
-                          </p>
-                          {col === "Pending" && approved && (
-                            <div className="mt-4 flex gap-2">
-                              <button
-                                onClick={() => changeStatus(b.id, "confirm")}
-                                className="flex-1 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 py-2 text-xs font-bold text-white shadow-md shadow-purple-500/25 hover:brightness-110 active:scale-95 transition"
-                              >
-                                Accept
-                              </button>
-                              <button
-                                onClick={() => changeStatus(b.id, "reject")}
-                                className="flex-1 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-bold text-slate-400 hover:border-red-500 hover:text-red-400 transition"
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                          {col === "Confirmed" && approved && (
-                            <button
-                              onClick={() => changeStatus(b.id, "start")}
-                              className="mt-4 w-full rounded-lg border border-cyan-400/50 bg-cyan-400/10 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-400 hover:text-black transition"
-                            >
-                              Mark In Progress
-                            </button>
-                          )}
-                          {col === "InProgress" && approved && (
-                            <button
-                              onClick={() => changeStatus(b.id, "complete")}
-                              className="mt-4 w-full rounded-lg border border-emerald-400/50 bg-emerald-400/10 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-400 hover:text-black transition"
-                            >
-                              Complete Job
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {activeTab === "Analytics" && (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Total Earnings</p>
-                  <p className="mt-2 text-4xl font-extrabold text-emerald-400">${totalEarnings.toFixed(2)}</p>
-                  <p className="mt-1 text-[10px] text-slate-500">Based on completed contracts</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Completion Rate</p>
-                  <p className="mt-2 text-4xl font-extrabold text-purple-400">{completionRate}%</p>
-                  <p className="mt-1 text-[10px] text-slate-500">Accepted vs. finished ratio</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Active Schedule</p>
-                  <p className="mt-2 text-4xl font-extrabold text-cyan-400">{activeJobs}</p>
-                  <p className="mt-1 text-[10px] text-slate-500">Jobs currently active or confirmed</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                  <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Customer Rating</p>
-                  <p className="mt-2 text-4xl font-extrabold text-amber-400">4.9 ★</p>
-                  <p className="mt-1 text-[10px] text-slate-500">Aggregate provider rating</p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                <h3 className="font-bold text-lg mb-4 text-white">Performance Overview</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span>Total Registered Bookings ({bookings.length})</span>
-                      <span>{bookings.length} jobs</span>
-                    </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-500 rounded-full" style={{ width: "100%" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span>Completed Contracts ({completedJobs.length})</span>
-                      <span>{completionRate}% rate</span>
-                    </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${completionRate}%` }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "Bookings" && (
             <div className="space-y-6">
-              {approved && (
-                <div className="p-5 bg-white/5 border border-white/10 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {profile?.status === "PendingApproval" && (
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 flex items-start gap-4 text-amber-250">
+                  <AlertTriangle className="h-6 w-6 shrink-0 text-amber-400" />
                   <div>
-                    <h4 className="font-bold text-white">Time Slot Generation</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Generate daily booking slots based on your availability template.</p>
+                    <h4 className="font-bold text-sm text-white">Verification Under Review</h4>
+                    <p className="text-xs text-amber-300/80 leading-relaxed mt-1">
+                      Your provider application is currently pending admin approval. You can prepare your services, set availability, and manage your profile in the meantime. However, you will not receive live client booking requests on the marketplace until your status is set to Approved.
+                    </p>
                   </div>
-                  <button
-                    onClick={handleGenerateSlots}
-                    disabled={slotGenLoading}
-                    className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-purple-500/25 hover:brightness-110 active:scale-95 disabled:opacity-50 transition"
-                  >
-                    {slotGenLoading ? "Generating..." : "Generate 7-Day Slots"}
-                  </button>
                 </div>
               )}
 
-              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md overflow-hidden">
-              <h3 className="font-bold text-lg mb-6 text-white">Incoming Service Request Schedule</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 text-xs uppercase tracking-widest text-slate-400 font-bold">
-                      <th className="py-3 px-4">Customer</th>
-                      <th className="py-3 px-4">Service</th>
-                      <th className="py-3 px-4">Date/Time</th>
-                      <th className="py-3 px-4">Special Notes</th>
-                      <th className="py-3 px-4 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-sm">
-                    {bookings.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-10 text-center text-slate-500 italic">No bookings scheduled yet.</td>
-                      </tr>
-                    ) : (
-                      bookings.map((b) => (
-                        <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                          <td className="py-4 px-4 font-semibold text-white">
-                            {b.customer?.name || "Client"}
-                            <span className="block text-[10px] font-normal text-slate-400">{b.customer?.phone || "No phone"}</span>
-                          </td>
-                          <td className="py-4 px-4 text-slate-300">{b.service?.name || "Service ID " + b.serviceId}</td>
-                          <td className="py-4 px-4 text-slate-300">
-                            {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} | ${b.slot.startTime}` : "TBD"}
-                          </td>
-                          <td className="py-4 px-4 text-slate-400 italic max-w-xs truncate">
-                            {b.notes ? `"${b.notes}"` : "—"}
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                              b.status === "Pending" ? "bg-amber-500/15 text-amber-400" :
-                              b.status === "Confirmed" ? "bg-cyan-500/15 text-cyan-400" :
-                              b.status === "InProgress" ? "bg-blue-500/15 text-blue-400" :
-                              "bg-emerald-500/15 text-emerald-400"
-                            }`}>
-                              {b.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+              {/* Booking States Columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {COLUMNS.map((col) => {
+                  const filtered = bookings.filter((b) => b.status === col);
+                  return (
+                    <div key={col} className="rounded-2xl border border-white/5 bg-black/20 p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">{col}</span>
+                        <span className="rounded-lg bg-white/5 px-2 py-0.5 text-xs font-bold text-slate-300">
+                          {filtered.length}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        {filtered.length > 0 ? (
+                          filtered.map((b) => (
+                            <div
+                              key={b.id}
+                              className="rounded-xl border border-white/10 bg-[#0F0F13] p-4 space-y-3 transition hover:border-purple-500/50"
+                            >
+                              <div className="flex justify-between items-start gap-2">
+                                <p className="font-bold text-white text-xs">{b.service?.name || "Maintenance Job"}</p>
+                                <span className="text-[10px] font-mono text-slate-500">#{b.id}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-450 leading-relaxed">{b.notes || "No extra requirements provided."}</p>
+
+                              {b.slot && (
+                                <p className="text-[10px] text-slate-400 font-semibold">
+                                  Schedule: {new Date(b.slot.date).toLocaleDateString()} @ {b.slot.startTime.substring(0,5)}
+                                </p>
+                              )}
+
+                              {/* Interactive State Actions */}
+                              <div className="flex flex-wrap gap-1.5 pt-2">
+                                {col === "Pending" && (
+                                  <>
+                                    <button
+                                      disabled={isSuspended}
+                                      onClick={() => changeStatus(b.id, "confirm")}
+                                      className={`rounded-lg bg-emerald-650 hover:bg-emerald-700 px-2.5 py-1 text-[9px] font-bold text-white transition ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                                    >
+                                      Accept
+                                    </button>
+                                    <button
+                                      disabled={isSuspended}
+                                      onClick={() => changeStatus(b.id, "reject")}
+                                      className={`rounded-lg bg-rose-650 hover:bg-rose-700 px-2.5 py-1 text-[9px] font-bold text-white transition ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                                    >
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {col === "Confirmed" && (
+                                  <button
+                                    disabled={isSuspended}
+                                    onClick={() => changeStatus(b.id, "start")}
+                                    className={`rounded-lg bg-purple-600 hover:bg-purple-750 px-2.5 py-1 text-[9px] font-bold text-white transition ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                                  >
+                                    Start Job
+                                  </button>
+                                )}
+                                {col === "InProgress" && (
+                                  <button
+                                    disabled={isSuspended}
+                                    onClick={() => changeStatus(b.id, "complete")}
+                                    className={`rounded-lg bg-indigo-600 hover:bg-indigo-750 px-2.5 py-1 text-[9px] font-bold text-white transition ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                                  >
+                                    Complete Job
+                                  </button>
+                                )}
+                                {col === "Completed" && (
+                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-center py-6 text-slate-600 text-xs italic">No {col.toLowerCase()} requests.</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-          {activeTab === "Payments" && (
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
-                <h3 className="font-bold text-lg mb-6 text-white">Financial Ledger & Payout History</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-white/10 text-xs uppercase tracking-widest text-slate-400 font-bold">
-                        <th className="py-3 px-4">Transaction ID</th>
-                        <th className="py-3 px-4">Service Performed</th>
-                        <th className="py-3 px-4">Client Name</th>
-                        <th className="py-3 px-4">Amount Earned</th>
-                        <th className="py-3 px-4 text-right">Payout Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-sm">
-                      {completedJobs.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-10 text-center text-slate-500 italic">No payments received yet. Completed jobs will show up here.</td>
-                        </tr>
-                      ) : (
-                        completedJobs.map((b, idx) => (
-                          <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                            <td className="py-4 px-4 text-slate-400 font-mono">TXN-00{idx + 1}-{b.id}</td>
-                            <td className="py-4 px-4 text-slate-300">{b.service?.name || "Service ID " + b.serviceId}</td>
-                            <td className="py-4 px-4 text-slate-300">{b.customer?.name || "Client"}</td>
-                            <td className="py-4 px-4 font-bold text-emerald-400">${(b.service?.price || 50.0).toFixed(2)}</td>
-                            <td className="py-4 px-4 text-right">
-                              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400">
-                                Transferred
-                              </span>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+          {/* ANALYTICS TAB VIEW */}
+          {activeTab === "Analytics" && (
+            <div className="space-y-6 max-w-4xl">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                  <p className="text-xs uppercase tracking-widest text-slate-500 font-bold">Total Finished Jobs</p>
+                  <p className="text-3xl font-extrabold text-white mt-2">{completedJobs.length}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                  <p className="text-xs uppercase tracking-widest text-slate-500 font-bold">Total Earnings</p>
+                  <p className="text-3xl font-extrabold text-emerald-400 mt-2">${totalEarnings.toFixed(2)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                  <p className="text-xs uppercase tracking-widest text-slate-500 font-bold">Total Incoming Requests</p>
+                  <p className="text-3xl font-extrabold text-purple-400 mt-2">
+                    {bookings.filter((b) => b.status === "Pending").length}
+                  </p>
                 </div>
               </div>
             </div>
           )}
 
+          {/* BOOKINGS TAB VIEW */}
+          {activeTab === "Bookings" && (
+            <div className="space-y-6 max-w-3xl">
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                <h3 className="font-bold text-lg text-white mb-4">Confirmed Schedules</h3>
+                <div className="space-y-3">
+                  {bookings.filter((b) => b.status === "Confirmed" || b.status === "InProgress").length > 0 ? (
+                    bookings
+                      .filter((b) => b.status === "Confirmed" || b.status === "InProgress")
+                      .map((b) => (
+                        <div key={b.id} className="flex justify-between items-center bg-white/5 border border-white/5 rounded-xl p-4">
+                          <div>
+                            <p className="font-bold text-white text-sm">{b.service?.name || "Home Maintenance"}</p>
+                            {b.slot && (
+                              <p className="text-xs text-slate-400 mt-1">
+                                {new Date(b.slot.date).toLocaleDateString()} @ {b.slot.startTime.substring(0,5)}
+                              </p>
+                            )}
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            b.status === "InProgress" ? "bg-purple-650/20 text-purple-300" : "bg-blue-650/20 text-blue-300"
+                          }`}>
+                            {b.status}
+                          </span>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-sm font-medium text-slate-500 italic">No scheduled active jobs today.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PAYMENTS TAB VIEW */}
+          {activeTab === "Payments" && (
+            <div className="space-y-6 max-w-3xl">
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                <h3 className="font-bold text-lg text-white mb-4">Billing Invoices</h3>
+                <div className="space-y-3">
+                  {completedJobs.length > 0 ? (
+                    completedJobs.map((b) => (
+                      <div key={b.id} className="flex justify-between items-center bg-white/5 border border-white/5 rounded-xl p-4">
+                        <div>
+                          <p className="font-bold text-white text-sm">Invoice for Job #{b.id}</p>
+                          <p className="text-xs text-slate-400 mt-1">{b.service?.name || "General Service"}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-extrabold text-emerald-450 text-base">${(b.service?.price || 50).toFixed(2)}</p>
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 mt-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Paid
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm font-medium text-slate-500 italic">No billing transactions or finished jobs recorded.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* AVAILABILITY TAB VIEW (Expanded Full-Width layout) */}
+          {activeTab === "Availability" && (
+            <div className="space-y-8 w-full animate-in fade-in duration-300">
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
+                <h3 className="font-bold text-xl text-white mb-2 flex items-center gap-2">
+                  <Clock className="h-6 w-6 text-purple-400" />
+                  Weekly Availability Schedule
+                </h3>
+                <p className="text-slate-450 text-xs mb-6">Define the days and time slots you are open for maintenance bookings. Submitting updates will generate active time slots for the next 7 days.</p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left panel: Add schedule slots */}
+                  <div className="lg:col-span-1 space-y-5 bg-white/5 p-5 rounded-2xl border border-white/5">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2">Add Working Window</h4>
+                    
+                    {/* Days Checklist */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase block mb-2">Select Days</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {daysOfWeekOptions.map(option => (
+                          <label key={option.value} className="flex items-center gap-2 text-xs text-slate-350 cursor-pointer hover:text-white transition">
+                            <input 
+                              type="checkbox"
+                              disabled={isSuspended}
+                              checked={selectedDays.includes(option.value)}
+                              onChange={() => handleToggleDay(option.value)}
+                              className="accent-purple-500 rounded border-white/10 bg-black focus:ring-0 disabled:opacity-40"
+                            />
+                            <span>{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Start & End Times */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1.5">Start Time</label>
+                        <input 
+                          type="time"
+                          disabled={isSuspended}
+                          value={availStartTime}
+                          onChange={(e) => setAvailStartTime(e.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-black px-3 py-2 text-xs text-white focus:border-purple-500 focus:outline-none disabled:opacity-40"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1.5">End Time</label>
+                        <input 
+                          type="time"
+                          disabled={isSuspended}
+                          value={availEndTime}
+                          onChange={(e) => setAvailEndTime(e.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-black px-3 py-2 text-xs text-white focus:border-purple-500 focus:outline-none disabled:opacity-40"
+                        />
+                      </div>
+                    </div>
+
+                    {/* UNIFIED BUTTON: Add Slot Window */}
+                    <button
+                      type="button"
+                      disabled={isSuspended}
+                      onClick={handleAddSlotWindow}
+                      className={`w-full bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl hover:brightness-110 active:scale-95 shadow-lg shadow-purple-600/20 transition-all duration-300 disabled:opacity-50 mt-4 ${isSuspended ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      Add Slot Window
+                    </button>
+                  </div>
+
+                  {/* Right panel: Active availability list */}
+                  <div className="lg:col-span-2 space-y-5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Configure Slots Queue</h4>
+                      {/* UNIFIED BUTTON: Save & Publish Schedule */}
+                      <button
+                        disabled={isSuspended}
+                        onClick={handleSubmitWeeklySchedule}
+                        className={`bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-6 rounded-xl hover:brightness-110 active:scale-95 shadow-lg shadow-purple-600/20 transition-all duration-300 disabled:opacity-50 ${isSuspended ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        Save & Publish Schedule
+                      </button>
+                    </div>
+
+                    {availList.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center text-slate-500 text-xs italic">
+                        No availability slots defined. Select days and times on the left to populate your schedule.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[350px] overflow-y-auto pr-1">
+                        {availList.map((item, index) => {
+                          const dayLabel = daysOfWeekOptions.find(d => d.value === item.dayOfWeek)?.label || "Day";
+                          return (
+                            <div key={index} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3.5 transition hover:border-purple-500/30">
+                              <div>
+                                <p className="text-sm font-bold text-white">{dayLabel}</p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  Hours: <span className="text-purple-400 font-semibold">{item.startTime} - {item.endTime}</span>
+                                </p>
+                              </div>
+                              <button
+                                disabled={isSuspended}
+                                onClick={() => handleRemoveSlotWindow(index)}
+                                className={`px-3.5 py-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-[10px] font-extrabold text-rose-350 hover:bg-rose-500/20 transition active:scale-95 ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* PROFILE TAB VIEW (Expanded Full-Width layout) */}
           {activeTab === "Profile" && (
-            <div className="rounded-2xl border border-white/10 bg-black/40 p-8 backdrop-blur-md max-w-3xl">
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-8 backdrop-blur-md w-full animate-in fade-in duration-300">
               {profile ? (
                 <div className="space-y-6">
                   <div className="flex items-center gap-6 pb-6 border-b border-white/10">
-                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg shadow-purple-500/20">
+                    {/* UNIFIED GRADIENT AVATAR BACKGROUND */}
+                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-650 to-purple-600 flex items-center justify-center text-white text-3xl font-extrabold shadow-lg shadow-purple-600/30">
                       {profile.name ? profile.name.charAt(0) : "P"}
                     </div>
                     <div>
                       <h3 className="text-2xl font-bold text-white">{profile.name || "Provider"}</h3>
-                      <p className="text-sm text-purple-400 font-medium">Service Provider Profile</p>
+                      <p className="text-sm text-purple-400 font-medium font-semibold tracking-wide">Service Provider Profile</p>
                     </div>
                   </div>
 
@@ -678,25 +884,26 @@ function ProviderDashboard() {
 
                   <div className="pt-4 border-t border-white/10">
                     <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold mb-2">Professional Bio</p>
-                    <p className="text-sm text-slate-300 leading-relaxed italic bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
+                    <p className="text-sm text-slate-350 leading-relaxed italic bg-white/5 p-4 rounded-xl border border-white/5 mb-6">
                       {profile.bio ? `"${profile.bio}"` : "No bio provided yet. Update in settings."}
                     </p>
                   </div>
 
+                  {/* SERVICES LIST SECTION */}
                   <div className="pt-6 border-t border-white/10 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Services Offered</p>
-                      {approved && (
-                        <button
-                          onClick={() => setShowAddService(!showAddService)}
-                          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition"
-                        >
-                          {showAddService ? "Cancel" : "Add Service"}
-                        </button>
-                      )}
+                      {/* UNIFIED BUTTON: Add Service */}
+                      <button
+                        disabled={isSuspended}
+                        onClick={() => setShowAddService(!showAddService)}
+                        className={`bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-6 rounded-xl hover:brightness-110 active:scale-95 shadow-lg shadow-purple-600/20 transition-all duration-300 disabled:opacity-50 ${isSuspended ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        {showAddService ? "Cancel" : "Add Service"}
+                      </button>
                     </div>
 
-                    {showAddService && approved && (
+                    {showAddService && (
                       <form onSubmit={handleAddService} className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4 shadow-xl">
                         <h4 className="text-sm font-bold text-white uppercase tracking-wider">Add New Service</h4>
                         
@@ -706,7 +913,7 @@ function ProviderDashboard() {
                             <select
                               value={selectedCategoryId}
                               onChange={(e) => setSelectedCategoryId(e.target.value ? Number(e.target.value) : "")}
-                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/45"
                               required
                             >
                               <option value="">-- Select Category --</option>
@@ -721,7 +928,7 @@ function ProviderDashboard() {
                             <select
                               value={selectedServiceId}
                               onChange={(e) => setSelectedServiceId(e.target.value ? Number(e.target.value) : "")}
-                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                              className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/45"
                               disabled={!selectedCategoryId}
                               required
                             >
@@ -736,15 +943,25 @@ function ProviderDashboard() {
                           </div>
                         </div>
 
+                        {/* Price Input with Manual Toggle */}
                         <div>
-                          <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1.5">Base Price ($)</label>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase block">Base Price ($)</label>
+                            <button
+                              type="button"
+                              onClick={() => setManualPriceAdd(!manualPriceAdd)}
+                              className="text-[9px] font-extrabold text-purple-400 hover:text-purple-300 transition"
+                            >
+                              {manualPriceAdd ? "Use Selector" : "Add Manually"}
+                            </button>
+                          </div>
                           <input
-                            type="number"
-                            step="0.01"
+                            type={manualPriceAdd ? "text" : "number"}
+                            step={manualPriceAdd ? undefined : "1"}
                             value={servicePrice}
                             onChange={(e) => setServicePrice(e.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
-                            placeholder="50.00"
+                            className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/45"
+                            placeholder="50"
                             required
                           />
                         </div>
@@ -755,7 +972,7 @@ function ProviderDashboard() {
                             rows={3}
                             value={serviceDetails}
                             onChange={(e) => setServiceDetails(e.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                            className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/45"
                             placeholder="Describe what is included in this service..."
                             required
                           />
@@ -771,7 +988,7 @@ function ProviderDashboard() {
                           </button>
                           <button
                             type="submit"
-                            className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-5 py-2 text-xs font-bold text-white hover:brightness-110 active:scale-95 transition"
+                            className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-650 px-5 py-2 text-xs font-bold text-white hover:brightness-110 active:scale-95 transition"
                           >
                             Submit Service
                           </button>
@@ -779,24 +996,39 @@ function ProviderDashboard() {
                       </form>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Active Services Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {profile.services && profile.services.length > 0 ? (
                         profile.services.map((s: any) => (
-                          <div key={s.serviceId} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3.5">
+                          <div key={s.serviceId} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-2xl p-4.5 transition hover:border-purple-550/20">
                             <div>
                               <p className="text-sm font-bold text-white">
                                 {allServicesList.find((item) => item.id === s.serviceId)?.name || `Service ${s.serviceId}`}
                               </p>
-                              <p className="text-xs text-slate-400 mt-0.5">Base Price: <span className="text-emerald-400 font-semibold">${s.basePrice.toFixed(2)}</span></p>
+                              <p className="text-xs text-slate-400 mt-1">Base Price: <span className="text-emerald-400 font-bold">${Math.round(s.basePrice)}</span></p>
+                              {s.details && (
+                                <p className="text-[11px] text-slate-500 mt-1.5 italic line-clamp-2 max-w-[200px]">
+                                  {s.details}
+                                </p>
+                              )}
                             </div>
-                            {approved && (
+                            {/* UNIFIED ACTION BUBBLES IN GRID */}
+                            <div className="flex gap-3">
                               <button
-                                onClick={() => handleDeleteService(s.serviceId)}
-                                className="text-[10px] font-bold text-red-400 hover:text-red-300 transition"
+                                disabled={isSuspended}
+                                onClick={() => handleOpenEditService(s)}
+                                className={`px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 text-[10px] font-extrabold text-purple-300 hover:bg-purple-600/20 hover:text-white hover:shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all duration-300 active:scale-95 ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
                               >
-                                Remove
+                                Edit Profile
                               </button>
-                            )}
+                              <button
+                                disabled={isSuspended}
+                                onClick={() => handleDeleteService(s.serviceId)}
+                                className={`px-4 py-2 rounded-full border border-rose-500/30 bg-rose-500/10 text-[10px] font-extrabold text-rose-350 hover:bg-rose-600/20 hover:text-white hover:shadow-[0_0_15px_rgba(244,63,94,0.2)] transition-all duration-300 active:scale-95 ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                              >
+                                Remove Offer
+                              </button>
+                            </div>
                           </div>
                         ))
                       ) : (
@@ -811,19 +1043,19 @@ function ProviderDashboard() {
             </div>
           )}
 
+          {/* SETTINGS TAB VIEW (Expanded Full-Width layout) */}
           {activeTab === "Settings" && (
-            <div className="space-y-8 max-w-3xl">
+            <div className="space-y-8 w-full animate-in fade-in duration-300">
               {statusMessage.text && (
                 <div className={`p-4 rounded-xl text-sm font-medium border ${
                   statusMessage.type === "success" 
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200" 
-                    : "bg-red-500/10 border-red-500/30 text-red-200"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-255" 
+                    : "bg-red-500/10 border-red-500/30 text-red-255"
                 }`}>
                   {statusMessage.text}
                 </div>
               )}
 
-              {/* PROFILE SETTINGS FORM */}
               <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-6">
                   <User className="h-5 w-5 text-purple-400" />
@@ -838,9 +1070,10 @@ function ProviderDashboard() {
                     <input
                       id="name"
                       type="text"
+                      disabled={isSuspended}
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/40 disabled:opacity-40"
                       required
                     />
                   </div>
@@ -852,23 +1085,24 @@ function ProviderDashboard() {
                     <textarea
                       id="bio"
                       rows={4}
+                      disabled={isSuspended}
                       value={editBio}
                       onChange={(e) => setEditBio(e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/40 disabled:opacity-40"
                       required
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 hover:brightness-110 active:scale-95 transition"
+                    disabled={isSuspended}
+                    className={`bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-6 rounded-xl hover:brightness-110 active:scale-95 shadow-lg shadow-purple-600/20 transition-all duration-300 disabled:opacity-50 ${isSuspended ? "cursor-not-allowed" : ""}`}
                   >
                     Save Profile Changes
                   </button>
                 </form>
               </div>
 
-              {/* CHANGE PASSWORD FORM */}
               <div className="rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-6">
                   <Lock className="h-5 w-5 text-purple-400" />
@@ -883,9 +1117,10 @@ function ProviderDashboard() {
                     <input
                       id="current"
                       type="password"
+                      disabled={isSuspended}
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/40 disabled:opacity-40"
                       required
                     />
                   </div>
@@ -897,9 +1132,10 @@ function ProviderDashboard() {
                     <input
                       id="new"
                       type="password"
+                      disabled={isSuspended}
                       value={passwordData.newPassword}
                       onChange={(e) => setPasswordData((prev) => ({ ...prev, newPassword: e.target.value }))}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/40 disabled:opacity-40"
                       required
                     />
                   </div>
@@ -911,16 +1147,18 @@ function ProviderDashboard() {
                     <input
                       id="confirm"
                       type="password"
+                      disabled={isSuspended}
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-550/40 disabled:opacity-40"
                       required
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 hover:brightness-110 active:scale-95 transition"
+                    disabled={isSuspended}
+                    className={`bg-gradient-to-r from-purple-600 via-indigo-650 to-purple-600 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-6 rounded-xl hover:brightness-110 active:scale-95 shadow-lg shadow-purple-600/20 transition-all duration-300 disabled:opacity-50 ${isSuspended ? "cursor-not-allowed" : ""}`}
                   >
                     Change Access Password
                   </button>
@@ -930,6 +1168,68 @@ function ProviderDashboard() {
           )}
         </div>
       </main>
+
+      {/* EDIT SERVICE MODAL */}
+      {showEditService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#0F0F13] shadow-2xl p-6">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Edit Service Offering</h3>
+            <form onSubmit={handleEditServiceSubmit} className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase block">Base Price ($)</label>
+                  <button
+                    type="button"
+                    onClick={() => setManualEditPriceAdd(!manualEditPriceAdd)}
+                    className="text-[9px] font-extrabold text-purple-400 hover:text-purple-300 transition"
+                  >
+                    {manualEditPriceAdd ? "Use Selector" : "Add Manually"}
+                  </button>
+                </div>
+                <input
+                  type={manualEditPriceAdd ? "text" : "number"}
+                  step={manualEditPriceAdd ? undefined : "1"}
+                  value={editServicePrice}
+                  onChange={(e) => setEditServicePrice(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1.5">Service Details / Description</label>
+                <textarea
+                  rows={3}
+                  value={editServiceDetails}
+                  onChange={(e) => setEditServiceDetails(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-black px-3 py-2.5 text-xs text-white focus:border-purple-500 focus:outline-none"
+                  placeholder="Describe what is included in this service..."
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditService(false);
+                    setManualEditPriceAdd(false);
+                  }}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-slate-400 hover:text-white transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-gradient-to-r from-purple-500 to-indigo-650 px-5 py-2 text-xs font-bold text-white hover:brightness-110 active:scale-95 transition"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,13 +11,17 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ProviderDashboardRouteImport } from './routes/provider-dashboard'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ServicesCategoryIdRouteImport } from './routes/services.$categoryId'
 import { Route as ProvidersServiceIdRouteImport } from './routes/providers.$serviceId'
 import { Route as AdminLoginRouteImport } from './routes/admin_.login'
+import { Route as ServicesServiceIdProvidersRouteImport } from './routes/services.$serviceId.providers'
 import { Route as ProvidersProviderIdBookRouteImport } from './routes/providers.$providerId.book'
+import { Route as AdminProvidersIdRouteImport } from './routes/admin.providers.$id'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -27,6 +31,11 @@ const ServicesRoute = ServicesRouteImport.update({
 const ProviderDashboardRoute = ProviderDashboardRouteImport.update({
   id: '/provider-dashboard',
   path: '/provider-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -44,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ServicesRoute,
+} as any)
 const ServicesCategoryIdRoute = ServicesCategoryIdRouteImport.update({
   id: '/$categoryId',
   path: '/$categoryId',
@@ -59,45 +73,67 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
   path: '/admin/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesServiceIdProvidersRoute =
+  ServicesServiceIdProvidersRouteImport.update({
+    id: '/$serviceId/providers',
+    path: '/$serviceId/providers',
+    getParentRoute: () => ServicesRoute,
+  } as any)
 const ProvidersProviderIdBookRoute = ProvidersProviderIdBookRouteImport.update({
   id: '/providers/$providerId/book',
   path: '/providers/$providerId/book',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProvidersIdRoute = AdminProvidersIdRouteImport.update({
+  id: '/providers/$id',
+  path: '/providers/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
   '/provider-dashboard': typeof ProviderDashboardRoute
   '/services': typeof ServicesRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/providers/$serviceId': typeof ProvidersServiceIdRoute
   '/services/$categoryId': typeof ServicesCategoryIdRoute
+  '/services/': typeof ServicesIndexRoute
+  '/admin/providers/$id': typeof AdminProvidersIdRoute
   '/providers/$providerId/book': typeof ProvidersProviderIdBookRoute
+  '/services/$serviceId/providers': typeof ServicesServiceIdProvidersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
   '/provider-dashboard': typeof ProviderDashboardRoute
-  '/services': typeof ServicesRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/providers/$serviceId': typeof ProvidersServiceIdRoute
   '/services/$categoryId': typeof ServicesCategoryIdRoute
+  '/services': typeof ServicesIndexRoute
+  '/admin/providers/$id': typeof AdminProvidersIdRoute
   '/providers/$providerId/book': typeof ProvidersProviderIdBookRoute
+  '/services/$serviceId/providers': typeof ServicesServiceIdProvidersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
+  '/login': typeof LoginRoute
   '/provider-dashboard': typeof ProviderDashboardRoute
   '/services': typeof ServicesRouteWithChildren
   '/admin_/login': typeof AdminLoginRoute
   '/providers/$serviceId': typeof ProvidersServiceIdRoute
   '/services/$categoryId': typeof ServicesCategoryIdRoute
+  '/services/': typeof ServicesIndexRoute
+  '/admin/providers/$id': typeof AdminProvidersIdRoute
   '/providers/$providerId/book': typeof ProvidersProviderIdBookRoute
+  '/services/$serviceId/providers': typeof ServicesServiceIdProvidersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,40 +141,52 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/login'
     | '/provider-dashboard'
     | '/services'
     | '/admin/login'
     | '/providers/$serviceId'
     | '/services/$categoryId'
+    | '/services/'
+    | '/admin/providers/$id'
     | '/providers/$providerId/book'
+    | '/services/$serviceId/providers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/auth'
+    | '/login'
     | '/provider-dashboard'
-    | '/services'
     | '/admin/login'
     | '/providers/$serviceId'
     | '/services/$categoryId'
+    | '/services'
+    | '/admin/providers/$id'
     | '/providers/$providerId/book'
+    | '/services/$serviceId/providers'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/auth'
+    | '/login'
     | '/provider-dashboard'
     | '/services'
     | '/admin_/login'
     | '/providers/$serviceId'
     | '/services/$categoryId'
+    | '/services/'
+    | '/admin/providers/$id'
     | '/providers/$providerId/book'
+    | '/services/$serviceId/providers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
+  LoginRoute: typeof LoginRoute
   ProviderDashboardRoute: typeof ProviderDashboardRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
@@ -162,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProviderDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -182,6 +237,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/services/': {
+      id: '/services/'
+      path: '/'
+      fullPath: '/services/'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof ServicesRoute
     }
     '/services/$categoryId': {
       id: '/services/$categoryId'
@@ -204,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/$serviceId/providers': {
+      id: '/services/$serviceId/providers'
+      path: '/$serviceId/providers'
+      fullPath: '/services/$serviceId/providers'
+      preLoaderRoute: typeof ServicesServiceIdProvidersRouteImport
+      parentRoute: typeof ServicesRoute
+    }
     '/providers/$providerId/book': {
       id: '/providers/$providerId/book'
       path: '/providers/$providerId/book'
@@ -211,15 +280,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProvidersProviderIdBookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/providers/$id': {
+      id: '/admin/providers/$id'
+      path: '/providers/$id'
+      fullPath: '/admin/providers/$id'
+      preLoaderRoute: typeof AdminProvidersIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminProvidersIdRoute: typeof AdminProvidersIdRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminProvidersIdRoute: AdminProvidersIdRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface ServicesRouteChildren {
   ServicesCategoryIdRoute: typeof ServicesCategoryIdRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
+  ServicesServiceIdProvidersRoute: typeof ServicesServiceIdProvidersRoute
 }
 
 const ServicesRouteChildren: ServicesRouteChildren = {
   ServicesCategoryIdRoute: ServicesCategoryIdRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
+  ServicesServiceIdProvidersRoute: ServicesServiceIdProvidersRoute,
 }
 
 const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
@@ -228,8 +318,9 @@ const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
+  LoginRoute: LoginRoute,
   ProviderDashboardRoute: ProviderDashboardRoute,
   ServicesRoute: ServicesRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,

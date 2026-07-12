@@ -40,7 +40,6 @@ namespace HomeServicesPlatform.Application.Services
                 _context.ProviderProfiles.Add(profile);
 
 
-                //  Add provider services to table  
                 if (dto.Services != null && dto.Services.Any())
                 {
                     foreach (var s in dto.Services)
@@ -49,7 +48,8 @@ namespace HomeServicesPlatform.Application.Services
                         {
                             Provider = profile,
                             ServiceId = s.ServiceId,
-                            BasePrice = s.BasePrice
+                            BasePrice = s.BasePrice,
+                            PriceType = s.Details ?? string.Empty
                         };
 
                         // add services to context
@@ -89,7 +89,8 @@ namespace HomeServicesPlatform.Application.Services
             {
                 ProviderId = provider.Id,
                 ServiceId = dto.ServiceId,
-                BasePrice = dto.BasePrice
+                BasePrice = dto.BasePrice,
+                PriceType = dto.Details ?? string.Empty
             };
 
             _context.ProviderServices.Add(providerService);
@@ -177,7 +178,8 @@ namespace HomeServicesPlatform.Application.Services
                         Services = p.ProviderServices.Select(ps => new ProviderServiceDto
                         {
                             ServiceId = ps.ServiceId,
-                            BasePrice = ps.BasePrice
+                            BasePrice = ps.BasePrice,
+                            Details = ps.PriceType
                         }).ToList()
                     })
                     .FirstOrDefaultAsync(); 
@@ -205,7 +207,7 @@ namespace HomeServicesPlatform.Application.Services
 {
     return await _context.ProviderServices
         .Where(ps => ps.ServiceId == serviceId
-                     && ps.Provider.IsApproved)
+                     && ps.Provider.Status == ProviderStatus.Approved)
         .Select(ps => new ProviderSearchResultDto
         {
             ProviderId   = ps.ProviderId,
@@ -228,7 +230,7 @@ namespace HomeServicesPlatform.Application.Services
     // a provider to a service along with their price info
     var query = _context.ProviderServices
         .Where(ps => ps.ServiceId == filter.ServiceId
-                     && ps.Provider.IsApproved);  
+                     && ps.Provider.Status == ProviderStatus.Approved);  
 
    
     if (filter.MinRating.HasValue)

@@ -5,7 +5,6 @@ import {
   Users,
   ShieldCheck,
   Activity,
-  Home,
   DollarSign,
   Calendar,
   Zap,
@@ -13,6 +12,7 @@ import {
   LogOut,
   CheckCircle2,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import api from "@/lib/api";
 
@@ -29,26 +29,6 @@ type Pending = {
   initials: string;
 };
 
-const INITIAL: Pending[] = [
-  { id: "p1", name: "Alexander Vaughn", category: "Painting", status: "REVIEW", initials: "AV" },
-  { id: "p2", name: "Flowline Plumbing", category: "Plumbing", status: "REVIEW", initials: "FP" },
-  {
-    id: "p3",
-    name: "Voltaic Electrical",
-    category: "Electrical",
-    status: "REVIEW",
-    initials: "VE",
-  },
-  { id: "p4", name: "Sparkline Cleaners", category: "Cleaning", status: "REVIEW", initials: "SC" },
-  {
-    id: "p5",
-    name: "HandyPro Fixers",
-    category: "General Repairs",
-    status: "REVIEW",
-    initials: "HP",
-  },
-];
-
 const NAV = [
   { label: "Dashboard", id: "dashboard", icon: LayoutDashboard },
   { label: "Profile", id: "profile", icon: UserIcon },
@@ -57,51 +37,34 @@ const NAV = [
   { label: "System", id: "system", icon: Activity },
 ];
 
-const METRICS = [
-  {
-    label: "Transaction Volume",
-    value: "$248,120",
-    sub: "+12.4% MoM",
-    icon: DollarSign,
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10",
-  },
-  {
-    label: "Customer Base",
-    value: "8,412",
-    sub: "+321 this week",
-    icon: Users,
-    color: "text-blue-400",
-    bg: "bg-blue-400/10",
-  },
-  {
-    label: "Total Bookings",
-    value: "3,127",
-    sub: "94% completion",
-    icon: Calendar,
-    color: "text-purple-400",
-    bg: "bg-purple-400/10",
-  },
-  {
-    label: "System Latency",
-    value: "184ms",
-    sub: "p95 stable",
-    icon: Zap,
-    color: "text-amber-400",
-    bg: "bg-amber-400/10",
-  },
-];
+function getInitials(name: string) {
+  if (!name) return "AD";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [rows, setRows] = useState(INITIAL);
+  const [providers, setProviders] = useState<any[]>([]);
+  const [rows, setRows] = useState<Pending[]>([]);
+  const [metrics, setMetrics] = useState<any[]>([
+    { label: "Transaction Volume", value: "$0", sub: "calculating...", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+    { label: "Customer Base", value: "0", sub: "calculating...", icon: Users, color: "text-blue-400", bg: "bg-blue-400/10" },
+    { label: "Total Bookings", value: "0", sub: "calculating...", icon: Calendar, color: "text-purple-400", bg: "bg-purple-400/10" },
+    { label: "System Latency", value: "0ms", sub: "stable", icon: Zap, color: "text-amber-400", bg: "bg-amber-400/10" },
+  ]);
   const [adminProfile, setAdminProfile] = useState<any>({
-    name: "System Administrator",
+    name: "Mariam Khaled",
     email: "admin@homeservices.com",
-    role: "Super Admin",
+    role: "Admin",
     joinDate: "Jan 15, 2024",
     status: "Active",
   });
+  
+  const [loading, setLoading] = useState(true);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -111,11 +74,85 @@ function AdminDashboard() {
   const [passwordStatus, setPasswordStatus] = useState({ loading: false, error: "", success: "" });
   const [selectedProvider, setSelectedProvider] = useState<Pending | null>(null);
 
-  useEffect(() => {
-    const userEmail = localStorage.getItem("userEmail");
-    if (userEmail) {
-      setAdminProfile((prev: any) => ({ ...prev, email: userEmail }));
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      // Fetch Admin profile
+      const meRes = await api.get("/User/me");
+      if (meRes.data.success) {
+        const profile = meRes.data.data;
+        setAdminProfile({
+          name: profile.name,
+          email: profile.email,
+          role: profile.userRole,
+          joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Jan 15, 2024",
+          status: "Active"
+        });
+      }
+
+      // Fetch metrics
+      const metricsRes = await api.get("/Admin/metrics");
+      if (metricsRes.data.success) {
+        const md = metricsRes.data.data;
+        setMetrics([
+          {
+            label: "Transaction Volume",
+            value: `$${md.transactionVolume.toLocaleString()}`,
+            sub: "Real-time sum",
+            icon: DollarSign,
+            color: "text-emerald-400",
+            bg: "bg-emerald-400/10",
+          },
+          {
+            label: "Customer Base",
+            value: md.customerBase.toString(),
+            sub: "Registered customers",
+            icon: Users,
+            color: "text-blue-400",
+            bg: "bg-blue-400/10",
+          },
+          {
+            label: "Total Bookings",
+            value: md.totalBookings.toString(),
+            sub: "System total",
+            icon: Calendar,
+            color: "text-purple-400",
+            bg: "bg-purple-400/10",
+          },
+          {
+            label: "System Latency",
+            value: `${md.systemLatency}ms`,
+            sub: "Stable",
+            icon: Zap,
+            color: "text-amber-400",
+            bg: "bg-amber-400/10",
+          },
+        ]);
+      }
+
+      // Fetch providers
+      const provRes = await api.get("/Admin/providers");
+      if (provRes.data.success) {
+        setProviders(provRes.data.data);
+        const pending = provRes.data.data.filter((p: any) => p.status === "PendingApproval");
+        setRows(pending.map((p: any) => ({
+          id: p.providerId.toString(),
+          name: p.providerName,
+          category: p.offeredServices[0] || "General Repairs",
+          status: "REVIEW" as const,
+          initials: getInitials(p.providerName),
+        })));
+      }
+
+    } catch (err) {
+      console.error("Failed to load admin console data", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -134,6 +171,7 @@ function AdminDashboard() {
       });
     }
   };
+
   const navigate = useNavigate();
 
   const handleProviderApproval = async (
@@ -143,24 +181,42 @@ function AdminDashboard() {
     try {
       const action = statusAction === "APPROVED" ? "approve" : "reject";
       await api.put(`/Admin/providers/${providerId}/${action}`);
-      setRows((prev) =>
-        prev.map((r) => (r.id === providerId ? { ...r, status: statusAction } : r)),
-      );
+      await loadData();
     } catch (err) {
-      console.log("Simulating approval.", { providerId, statusAction });
-      setRows((prev) =>
-        prev.map((r) => (r.id === providerId ? { ...r, status: statusAction } : r)),
-      );
+      console.error("Error approving/rejecting provider", err);
     }
     setSelectedProvider(null);
+  };
+
+  const handleUpdateStatus = async (providerId: number, status: string) => {
+    try {
+      await api.put(`/Admin/providers/status?providerId=${providerId}&status=${status}`);
+      await loadData();
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userEmail"); // Optional: clear user email too
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("adminLoginTime");
     navigate({ to: "/" });
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#09090b] text-slate-200">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-purple-500" />
+          <p className="text-sm font-semibold tracking-wider text-slate-400 animate-pulse">
+            Establishing Command Center Connection...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-[#09090b] text-slate-200 font-sans selection:bg-purple-500/30">
@@ -208,7 +264,7 @@ function AdminDashboard() {
           >
             <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0">
               <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white">
-                AD
+                {getInitials(adminProfile.name)}
               </div>
             </div>
             <div className="overflow-hidden">
@@ -242,7 +298,7 @@ function AdminDashboard() {
               </div>
 
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {METRICS.map((m, i) => (
+                {metrics.map((m) => (
                   <div
                     key={m.label}
                     className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-white/20 hover:shadow-2xl hover:shadow-black/50"
@@ -271,52 +327,59 @@ function AdminDashboard() {
                     </p>
                   </div>
                   <div className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold">
-                    {rows.filter((r) => r.status === "REVIEW").length} Pending
+                    {rows.length} Pending
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="text-left text-xs uppercase tracking-widest text-slate-500 bg-black/20">
-                        <th className="px-6 py-4 font-bold">Provider</th>
-                        <th className="px-6 py-4 font-bold">Category</th>
-                        <th className="px-6 py-4 font-bold">Status</th>
-                        <th className="px-6 py-4 text-right font-bold">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {rows.map((r) => (
-                        <tr
-                          key={r.id}
-                          onClick={() => setSelectedProvider(r)}
-                          className="transition-colors hover:bg-white/5 cursor-pointer group"
-                        >
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-4">
-                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 text-sm font-bold text-white shadow-inner group-hover:from-purple-500 group-hover:to-cyan-500 transition-colors">
-                                {r.initials}
-                              </div>
-                              <span className="font-semibold text-slate-200">{r.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300 backdrop-blur-md">
-                              {r.category}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5">
-                            <StatusBadge status={r.status} />
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                            <span className="text-xs font-bold text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                              VIEW DETAILS →
-                            </span>
-                          </td>
+                
+                {rows.length === 0 ? (
+                  <div className="p-10 text-center text-slate-500 text-sm font-semibold italic">
+                    All applications reviewed. No pending approvals in pipeline.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs uppercase tracking-widest text-slate-500 bg-black/20">
+                          <th className="px-6 py-4 font-bold">Provider</th>
+                          <th className="px-6 py-4 font-bold">Category</th>
+                          <th className="px-6 py-4 font-bold">Status</th>
+                          <th className="px-6 py-4 text-right font-bold">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {rows.map((r) => (
+                          <tr
+                            key={r.id}
+                            onClick={() => setSelectedProvider(r)}
+                            className="transition-colors hover:bg-white/5 cursor-pointer group"
+                          >
+                            <td className="px-6 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 text-sm font-bold text-white shadow-inner group-hover:from-purple-500 group-hover:to-cyan-500 transition-colors">
+                                  {r.initials}
+                                </div>
+                                <span className="font-semibold text-slate-200">{r.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300 backdrop-blur-md">
+                                {r.category}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <StatusBadge status="PendingApproval" />
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <span className="text-xs font-bold text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                VIEW DETAILS →
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -345,7 +408,7 @@ function AdminDashboard() {
                         {selectedProvider.category} Professional
                       </p>
                     </div>
-                    <StatusBadge status={selectedProvider.status} />
+                    <StatusBadge status="PendingApproval" />
                   </div>
 
                   <div className="space-y-4 mb-8">
@@ -354,7 +417,7 @@ function AdminDashboard() {
                         Email Address
                       </p>
                       <p className="text-sm font-medium text-slate-200">
-                        {selectedProvider.name.toLowerCase().replace(" ", ".")}@example.com
+                        {selectedProvider.name.toLowerCase().replace(/\s+/g, ".")}@example.com
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/5 bg-white/5 p-4">
@@ -369,16 +432,14 @@ function AdminDashboard() {
 
                   <div className="flex gap-3">
                     <button
-                      disabled={selectedProvider.status !== "REVIEW"}
                       onClick={() => handleProviderApproval(selectedProvider.id, "REJECTED")}
-                      className="flex-1 flex justify-center items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 py-3 text-sm font-bold text-rose-400 transition hover:bg-rose-500 hover:text-white disabled:opacity-30 disabled:hover:bg-rose-500/10 disabled:hover:text-rose-400"
+                      className="flex-1 flex justify-center items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 py-3 text-sm font-bold text-rose-400 transition hover:bg-rose-500 hover:text-white"
                     >
                       Reject Application
                     </button>
                     <button
-                      disabled={selectedProvider.status !== "REVIEW"}
                       onClick={() => handleProviderApproval(selectedProvider.id, "APPROVED")}
-                      className="flex-1 flex justify-center items-center gap-2 rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 disabled:opacity-30 disabled:hover:bg-emerald-500"
+                      className="flex-1 flex justify-center items-center gap-2 rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400"
                     >
                       <CheckCircle2 className="h-4 w-4" /> Approve
                     </button>
@@ -403,7 +464,7 @@ function AdminDashboard() {
                 <div className="h-32 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 relative">
                   <div className="absolute -bottom-12 left-8 h-24 w-24 rounded-2xl border-4 border-[#0F0F13] bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shadow-xl">
                     <div className="h-full w-full rounded-xl bg-black flex items-center justify-center text-3xl font-black text-white">
-                      AD
+                      {getInitials(adminProfile.name)}
                     </div>
                   </div>
                 </div>
@@ -446,7 +507,9 @@ function AdminDashboard() {
                       <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
                         Last Login
                       </p>
-                      <p className="text-slate-200 font-medium">Just now</p>
+                      <p className="text-slate-200 font-medium">
+                        {localStorage.getItem("adminLoginTime") || "Just now"}
+                      </p>
                     </div>
                   </div>
 
@@ -544,7 +607,114 @@ function AdminDashboard() {
             </div>
           )}
 
-          {activeTab !== "dashboard" && activeTab !== "profile" && (
+          {activeTab === "providers" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-extrabold tracking-tight text-white">Registered Providers</h1>
+                  <p className="mt-2 text-slate-400">View performance stats and manage credentials for all service providers.</p>
+                </div>
+                <div className="px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm font-bold w-fit">
+                  {providers.length} Total Providers
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden shadow-2xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-widest text-slate-500 bg-black/20">
+                        <th className="px-6 py-4 font-bold">Provider Name</th>
+                        <th className="px-6 py-4 font-bold">Rating</th>
+                        <th className="px-6 py-4 font-bold">Offered Services</th>
+                        <th className="px-6 py-4 font-bold">Status</th>
+                        <th className="px-6 py-4 text-right font-bold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {providers.map((p) => (
+                        <tr key={p.providerId} className="transition-colors hover:bg-white/5">
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-4">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 border border-white/10 text-sm font-bold text-white shadow-inner">
+                                {getInitials(p.providerName)}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-slate-200">{p.providerName}</div>
+                                <div className="text-xs text-slate-400">{p.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-slate-200">{p.avgRating ? p.avgRating.toFixed(1) : "5.0"}</span>
+                              <span className="text-amber-400">★</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-wrap gap-1 max-w-[240px]">
+                              {p.offeredServices && p.offeredServices.length > 0 ? (
+                                p.offeredServices.map((serviceName: string) => (
+                                  <span key={serviceName} className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-slate-300">
+                                    {serviceName}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-slate-500 text-xs italic">None</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <StatusBadge status={p.status} />
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <div className="flex justify-end gap-2">
+                              <Link
+                                to="/admin/providers/$id"
+                                params={{ id: p.providerId.toString() }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-400 transition border border-white/10"
+                              >
+                                View Profile
+                              </Link>
+                              
+                              {p.status === "PendingApproval" && (
+                                <button
+                                  onClick={() => handleUpdateStatus(p.providerId, "Approved")}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-emerald-400 transition border border-emerald-500/20"
+                                >
+                                  Approve
+                                </button>
+                              )}
+
+                              {p.status === "Approved" && (
+                                <button
+                                  onClick={() => handleUpdateStatus(p.providerId, "Suspended")}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-rose-400 transition border border-rose-500/20"
+                                >
+                                  Suspend
+                                </button>
+                              )}
+
+                              {(p.status === "Suspended" || p.status === "Rejected") && (
+                                <button
+                                  onClick={() => handleUpdateStatus(p.providerId, "Approved")}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-cyan-400 transition border border-cyan-500/20"
+                                >
+                                  Re-Approve
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== "dashboard" && activeTab !== "profile" && activeTab !== "providers" && (
             <div className="flex h-96 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-white/5">
               <div className="text-center">
                 <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />
@@ -561,20 +731,31 @@ function AdminDashboard() {
   );
 }
 
-function StatusBadge({ status }: { status: "REVIEW" | "APPROVED" | "REJECTED" }) {
+function StatusBadge({ status }: { status: string }) {
   const map = {
-    REVIEW: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    APPROVED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    REJECTED: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    PendingApproval: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    Approved: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    Rejected: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    Suspended: "bg-red-500/10 text-red-400 border-red-500/20",
   } as const;
+
+  const displayNames = {
+    PendingApproval: "In Review",
+    Approved: "Approved",
+    Rejected: "Rejected",
+    Suspended: "Suspended",
+  };
+
+  const badgeClass = map[status as keyof typeof map] || "bg-slate-500/10 text-slate-400 border-slate-500/20";
+  const displayName = displayNames[status as keyof typeof displayNames] || status;
+  const dotColor = status === "PendingApproval" ? "bg-amber-400" : status === "Approved" ? "bg-emerald-400" : status === "Suspended" ? "bg-red-400" : "bg-rose-400";
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider border ${map[status]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider border ${badgeClass}`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${status === "REVIEW" ? "bg-amber-400" : status === "APPROVED" ? "bg-emerald-400" : "bg-rose-400"}`}
-      ></span>
-      {status === "REVIEW" ? "In Review" : status}
+      <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`}></span>
+      {displayName}
     </span>
   );
 }

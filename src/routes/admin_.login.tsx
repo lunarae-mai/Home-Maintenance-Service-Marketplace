@@ -29,6 +29,7 @@ function AdminLogin() {
         localStorage.setItem("accessToken", res.data.data.accessToken);
         localStorage.setItem("refreshToken", res.data.data.refreshToken);
         localStorage.setItem("userEmail", email);
+        localStorage.setItem("adminLoginTime", new Date().toLocaleString());
         navigate({ to: "/admin" });
       } else {
         setError("Access Denied: You do not have administrator privileges.");
@@ -45,6 +46,7 @@ function AdminLogin() {
         // Simulate successful admin login
         localStorage.setItem("accessToken", "simulated_admin_token");
         localStorage.setItem("userEmail", email || "admin@homeservices.com");
+        localStorage.setItem("adminLoginTime", new Date().toLocaleString());
         navigate({ to: "/admin" });
         return;
       }
