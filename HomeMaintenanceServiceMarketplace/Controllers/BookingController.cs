@@ -6,198 +6,324 @@ using HomeServicesPlatform.Application.DTOs.Booking;
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using HomeServicesPlatform.Domain.Enums;
 using HomeServicesPlatform.Application.DTOs.Common;
 
 namespace HomeServicesPlatform.API.Controllers
 {
+    /// <summary>
+    /// Provides endpoints for creating and managing service bookings.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class BookingController : ControllerBase
-    { /// <summary>
-/// Provides endpoints for creating and managing service bookings.
-/// </summary>
-    private readonly IBookingService _bookingService;
+    {
+        private readonly IBookingService _bookingService;
+        private readonly IAppDbContext _context;
 
-    public BookingController(IBookingService bookingService)
-    {
-        _bookingService = bookingService;
-    }
-/// <summary>
-/// Creates a new booking for a selected service provider.
-/// </summary>
-/// <param name="request">The booking information.</param>
-/// <returns>The created booking.</returns>
-[ProducesResponseType(StatusCodes.Status201Created)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-   [HttpPost]
-[Authorize(Roles = "Customer")]
-public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
-{
-    var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (string.IsNullOrEmpty(customerId))
-    {
-        return Unauthorized(new ApiResponse<object>
+        public BookingController(IBookingService bookingService, IAppDbContext context)
         {
-            Success = false,
-            Message = "Unauthorized."
-        });
-    }
-
-    var result = await _bookingService.CreateBookingAsync(customerId, dto);
-
-    return Ok(new ApiResponse<object>
-    {
-        Success = true,
-        Message = "Booking created successfully.",
-        Data = result
-    });
-}
-
-
-    [HttpPut("{id}/confirm")]
-    [Authorize(Roles = "Provider")]   
-    public async Task<IActionResult> ConfirmBooking(int id, [FromBody] ConfirmBookingRequestDto? dto)
-    {
-        var notes = dto?.ProviderNotes ?? string.Empty;
-        var result = await _bookingService.ConfirmBookingAsync(id, notes);
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Message = "Booking confirmed successfully.",
-            Data = result
-        });
-    }
-
-    // StartBooking and CompleteBooking follow the exact same pattern
-    //
-    [HttpPut("{id}/start")]
-    [Authorize(Roles = "Provider")]
-    public async Task<IActionResult> StartBooking(int id)
-    {
-        var result = await _bookingService.StartBookingAsync(id);
-        return Ok(result);
-    }
-    //
-    [HttpPut("{id}/complete")]
-    [Authorize(Roles = "Provider")]
-    public async Task<IActionResult> CompleteBooking(int id)
-    {
-        var result = await _bookingService.CompleteBookingAsync(id);
-        return Ok(result);
-    } 
-
-    
-    
-    [HttpPut("{id}/reject")]
-    [Authorize(Roles = "Provider")]
-    public async Task<IActionResult> RejectBooking(int id)
-    {
-        var result = await _bookingService.RejectBookingAsync(id);
-        return Ok(result);
-    }
-/// <summary>
-/// Cancels an existing booking.
-/// </summary>
-/// <param name="id">The booking identifier.</param>
-/// <returns>A confirmation that the booking has been cancelled.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-
-   [HttpPut("{id}/cancel")]
-[Authorize(Roles = "Customer,Provider")]
-public async Task<IActionResult> CancelBooking(int id)
-{
-    var result = await _bookingService.CancelBookingAsync(id);
-
-    return Ok(new ApiResponse<object>
-    {
-        Success = true,
-        Message = "Booking cancelled successfully.",
-        Data = result
-    });
-}
-
-/// <summary>
-/// Retrieves all bookings created by the authenticated user.
-/// </summary>
-/// <returns>A list of the user's bookings.</returns>
-[ProducesResponseType(StatusCodes.Status200OK)]
-   [HttpGet("customer/{customerId}/history")]
-[Authorize(Roles = "Customer")]
-public async Task<IActionResult> GetBookingHistory(string customerId)
-{
-    var active = await _bookingService.GetCustomerActiveBookingsAsync(customerId);
-    var past = await _bookingService.GetCustomerPastBookingsAsync(customerId);
-
-    return Ok(new ApiResponse<object>
-    {
-        Success = true,
-        Message = "Booking history retrieved successfully.",
-        Data = new
-        {
-            ActiveBookings = active,
-            PastBookings = past
-        }
-    });
-}
-
-
-[HttpGet("provider/{providerId}/incoming-requests")]
-[Authorize(Roles = "Provider")]
-public async Task<IActionResult> GetIncomingRequests(int providerId)
-{
-    var requests = await _bookingService.GetIncomingRequestsAsync(providerId);
-
-    return Ok(new ApiResponse<object>
-    {
-        Success = true,
-        Message = "Incoming requests retrieved successfully.",
-        Data = requests
-    });
-}
-
-    //[HttpPut("{bookingId}/status")]
-    //public async Task<IActionResult> UpdateStatus(
-    //int bookingId,
-    //BookingStatus status)
-    //{
-    //    await _bookingService
-    //        .UpdateBookingStatusAsync(bookingId, status);
-
-    //    return Ok("Status updated successfully");
-    //}
-
-
-    [HttpGet("provider/{providerId}/today-schedule")]
-    [Authorize(Roles = "Provider")]
-    public async Task<IActionResult> GetTodaySchedule(int providerId)
-    {
-        var schedule =
-            await _bookingService.GetTodayScheduleAsync(providerId);
-
-       return Ok(new ApiResponse<object>
-    {
-        Success = true,
-        Message = "Today's schedule retrieved successfully.",
-        Data = schedule
-    });
+            _bookingService = bookingService;
+            _context = context;
         }
 
-    [HttpGet("provider/{providerId}/bookings")]
-    [Authorize(Roles = "Provider")]
-    public async Task<IActionResult> GetProviderBookings(int providerId)
-    {
-        var bookings = await _bookingService.GetProviderBookingsAsync(providerId);
-        return Ok(new ApiResponse<object>
+        // ─────────────────────────────────────────────
+        // CUSTOMER ENDPOINTS
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates a new booking for a selected service provider.
+        /// </summary>
+        /// <param name="dto">The booking information.</param>
+        /// <returns>The created booking.</returns>
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingDto dto)
         {
-            Success = true,
-            Message = "Bookings retrieved successfully.",
-            Data = bookings
-        });
+            var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerId))
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+
+            var result = await _bookingService.CreateBookingAsync(customerId, dto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking created successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Retrieves the full booking history for the authenticated customer (active and past).
+        /// </summary>
+        /// <returns>Active and past bookings for the logged-in customer.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [HttpGet("my-bookings")]
+        [Authorize]
+        public async Task<IActionResult> GetMyBookings()
+        {
+            // Use the authenticated user's identity from the JWT — never trust a path param
+            var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerId))
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+
+            var active = await _bookingService.GetCustomerActiveBookingsAsync(customerId);
+            var past   = await _bookingService.GetCustomerPastBookingsAsync(customerId);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking history retrieved successfully.",
+                Data = new
+                {
+                    ActiveBookings = active,
+                    PastBookings   = past
+                }
+            });
+        }
+
+        /// <summary>
+        /// Updates the notes on a booking. Only allowed when the booking status is Pending.
+        /// </summary>
+        /// <param name="id">The booking identifier.</param>
+        /// <param name="dto">The updated notes.</param>
+        /// <returns>The updated booking.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPut("{id}/update-notes")]
+        [Authorize]
+        public async Task<IActionResult> UpdateBookingNotes(int id, [FromBody] UpdateBookingDto dto)
+        {
+            var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerId))
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+
+            var result = await _bookingService.UpdateBookingAsync(id, customerId, dto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking notes updated successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Cancels an existing booking. Only allowed if status is Pending or Confirmed.
+        /// </summary>
+        /// <param name="id">The booking identifier.</param>
+        /// <returns>A confirmation that the booking has been cancelled.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPut("{id}/cancel")]
+        [Authorize(Roles = "Customer,Provider")]
+        public async Task<IActionResult> CancelBooking(int id)
+        {
+            var result = await _bookingService.CancelBookingAsync(id);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking cancelled successfully.",
+                Data = result
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        // PROVIDER ENDPOINTS
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Retrieves all Pending booking requests for the authenticated provider.
+        /// </summary>
+        /// <returns>List of pending booking requests.</returns>
+        [HttpGet("provider/my-pending")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> GetMyPendingRequests()
+        {
+            var providerId = await GetCurrentProviderIdAsync();
+            if (providerId == null)
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider profile not found for the current user."
+                });
+
+            var requests = await _bookingService.GetIncomingRequestsAsync(providerId.Value);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Pending booking requests retrieved successfully.",
+                Data = requests
+            });
+        }
+
+        /// <summary>
+        /// Retrieves all bookings (all statuses) for the authenticated provider.
+        /// </summary>
+        /// <returns>All bookings for the logged-in provider.</returns>
+        [HttpGet("provider/my-bookings")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> GetMyProviderBookings()
+        {
+            var providerId = await GetCurrentProviderIdAsync();
+            if (providerId == null)
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider profile not found for the current user."
+                });
+
+            var bookings = await _bookingService.GetProviderBookingsAsync(providerId.Value);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Bookings retrieved successfully.",
+                Data = bookings
+            });
+        }
+
+        /// <summary>
+        /// Retrieves today's scheduled bookings for the authenticated provider.
+        /// </summary>
+        /// <returns>Today's bookings for the logged-in provider.</returns>
+        [HttpGet("provider/my-today-schedule")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> GetMyTodaySchedule()
+        {
+            var providerId = await GetCurrentProviderIdAsync();
+            if (providerId == null)
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Provider profile not found for the current user."
+                });
+
+            var schedule = await _bookingService.GetTodayScheduleAsync(providerId.Value);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Today's schedule retrieved successfully.",
+                Data = schedule
+            });
+        }
+
+        /// <summary>
+        /// Confirms (accepts) a pending booking request.
+        /// Transitions the booking status from Pending to Confirmed.
+        /// </summary>
+        [HttpPut("{id}/confirm")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> ConfirmBooking(int id, [FromBody] ConfirmBookingRequestDto? dto)
+        {
+            var notes  = dto?.ProviderNotes ?? string.Empty;
+            var result = await _bookingService.ConfirmBookingAsync(id, notes);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking confirmed successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Rejects a pending booking request and frees the time slot.
+        /// </summary>
+        [HttpPut("{id}/reject")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> RejectBooking(int id)
+        {
+            var result = await _bookingService.RejectBookingAsync(id);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking rejected successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Marks a confirmed booking as In Progress (work has started).
+        /// </summary>
+        [HttpPut("{id}/start")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> StartBooking(int id)
+        {
+            var result = await _bookingService.StartBookingAsync(id);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking started successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
+        /// Marks an in-progress booking as Completed (work is done).
+        /// </summary>
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> CompleteBooking(int id)
+        {
+            var result = await _bookingService.CompleteBookingAsync(id);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking completed successfully.",
+                Data = result
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        // PRIVATE HELPERS
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Resolves the ProviderProfile.Id for the currently authenticated user.
+        /// Returns null if no provider profile exists for this user.
+        /// </summary>
+        private async Task<int?> GetCurrentProviderIdAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return null;
+
+            var provider = await _context.ProviderProfiles
+                .FirstOrDefaultAsync(p => p.UserId == userId);
+
+            return provider?.Id;
+        }
     }
-    }
+
+    // ─────────────────────────────────────────────
+    // LOCAL REQUEST DTOs
+    // ─────────────────────────────────────────────
 
     public class ConfirmBookingRequestDto
     {

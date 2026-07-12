@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Application.Interfaces;
+using HomeServicesPlatform.Application.Interfaces;
 using HomeServicesPlatform.Domain.Models;
 using HomeServicesPlatform.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +28,7 @@ namespace HomeServicesPlatform.Infrastructure.Repositories
                 .Include(b => b.Provider)
                 .Include(b => b.Service)
                 .Include(b => b.Slot)
+                .Include(b => b.Payment)
                 .ToListAsync();
         }
 
@@ -38,6 +39,7 @@ namespace HomeServicesPlatform.Infrastructure.Repositories
                 .Include(b => b.Customer)
                 .Include(b => b.Service)
                 .Include(b => b.Slot)
+                .Include(b => b.Payment)
                 .ToListAsync();
         }
     }

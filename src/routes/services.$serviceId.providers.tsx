@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Star, ChevronRight, Calendar, Clock, DollarSign, CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
+import { Star, ChevronRight, Calendar, Clock, DollarSign, CheckCircle2, Loader2, ShieldAlert, User } from "lucide-react";
 import { TopNav } from "@/components/top-nav";
 import { useState, useEffect, useMemo } from "react";
 import api from "@/lib/api";

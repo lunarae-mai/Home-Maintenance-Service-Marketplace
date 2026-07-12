@@ -318,5 +318,25 @@ namespace HomeServicesPlatform.Application.Services
         {
             return await _bookingRepository.GetBookingsByProviderAsync(providerId);
         }
+
+        // Allows the customer to edit the Notes on their booking, but ONLY if it is still Pending.
+        public async Task<BookingResponseDto> UpdateBookingAsync(int bookingId, string customerId, UpdateBookingDto dto)
+        {
+            var booking = await GetBookingOrThrowAsync(bookingId);
+
+            // Ownership check: only the customer who created the booking can edit it
+            if (booking.CustomerId != customerId)
+                throw new UnauthorizedAccessException(
+                    "You are not authorised to edit this booking.");
+
+            // Status gate: editing is only allowed while the booking is still Pending
+            EnsureStatus(booking, BookingStatus.Pending, "update");
+
+            booking.Notes = dto.Notes;
+            _bookingRepository.Update(booking);
+            await _context.SaveChangesAsync();
+
+            return MapToDto(booking);
+        }
     }
 }

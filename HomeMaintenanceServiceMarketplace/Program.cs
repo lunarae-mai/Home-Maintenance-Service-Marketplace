@@ -24,7 +24,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5137")
+        policy.WithOrigins("http://localhost:5137","http://localhost:5000") // Add your frontend URL here
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -35,7 +35,7 @@ builder.Services.AddDbContext<HomeServicesPlatform.Infrastructure.Data.AppDbCont
 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Services and their interfaces
-builder.Services.AddScoped<HomeServicesPlatform.Application.Interfaces.IAppDbContext, HomeServicesPlatform.Infrastructure.Data.AppDbContext>();
+builder.Services.AddScoped<HomeServicesPlatform.Application.Interfaces.IAppDbContext>(provider => provider.GetRequiredService<HomeServicesPlatform.Infrastructure.Data.AppDbContext>());
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProfileManagementService, ProfileManagementService>();
 
@@ -70,6 +70,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
 // Register Payment Service

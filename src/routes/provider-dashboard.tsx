@@ -127,7 +127,7 @@ function ProviderDashboard() {
         setProviderId(pId);
 
         // Fetch comprehensive list of bookings for the provider
-        const res = await api.get(`/Booking/provider/${pId}/bookings`);
+        const res = await api.get(`/Booking/provider/my-bookings`);
         if (res.data.success) {
           setBookings(res.data.data);
         }
@@ -242,6 +242,25 @@ function ProviderDashboard() {
       }
     } catch (err) {
       console.error(`Failed to ${action} booking`, err);
+    }
+  };
+
+  const verifyPayment = async (bookingId: number, amount: number) => {
+    if (isSuspended) return;
+    if (!confirm(`Confirm receipt of cash payment of $${amount} for this booking?`)) return;
+    try {
+      const res = await api.post("/Payments/verify-cash", {
+        bookingId,
+        finalAmount: amount,
+        method: "Cash"
+      });
+      if (res.data.success) {
+        alert("Payment verified successfully. Booking is now marked as Paid.");
+        fetchProfileAndBookings();
+      }
+    } catch (err: any) {
+      console.error("Failed to verify payment", err);
+      alert(err.response?.data?.message || "Failed to verify payment.");
     }
   };
 
@@ -431,7 +450,7 @@ function ProviderDashboard() {
   };
 
   // Math metrics for Analytics
-  const completedJobs = bookings.filter((b) => b.status === "Completed");
+  const completedJobs = bookings.filter((b) => b.status === "Completed" || b.status === "Paid");
   const totalEarnings = completedJobs.reduce((acc, b) => acc + (b.service?.price || 50.0), 0);
 
   return (
@@ -536,7 +555,10 @@ function ProviderDashboard() {
               {/* Booking States Columns */}
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 {COLUMNS.map((col) => {
-                  const filtered = bookings.filter((b) => b.status === col);
+                  const filtered = bookings.filter((b) => {
+                    if (col === "Completed") return b.status === "Completed" || b.status === "Paid";
+                    return b.status === col;
+                  });
                   return (
                     <div key={col} className="rounded-2xl border border-white/5 bg-black/20 p-4 space-y-4">
                       <div className="flex items-center justify-between">
@@ -604,9 +626,24 @@ function ProviderDashboard() {
                                   </button>
                                 )}
                                 {col === "Completed" && (
-                                  <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400">
-                                    <CheckCircle2 className="h-3.5 w-3.5" /> Completed
-                                  </span>
+                                  <div className="flex flex-col gap-1.5 items-start">
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-400">
+                                      <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+                                    </span>
+                                    {(!b.payment || b.payment.paymentStatus !== "Paid") ? (
+                                      <button
+                                        disabled={isSuspended}
+                                        onClick={() => verifyPayment(b.id, b.service?.price || 50)}
+                                        className={`rounded-lg bg-emerald-600 hover:bg-emerald-750 px-2.5 py-1 text-[9px] font-bold text-white transition ${isSuspended ? "opacity-40 cursor-not-allowed" : ""}`}
+                                      >
+                                        Verify Cash Payment
+                                      </button>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-cyan-400">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400"></span> Paid
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>

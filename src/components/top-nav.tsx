@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Sun, Moon, Palette, User, X, Lock, Mail, Phone, LogOut, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { Home, Sun, Moon, Palette, User, X, Lock, Mail, Phone, LogOut, ShieldAlert, CheckCircle2, Loader2, Star, Pencil, Trash2 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
@@ -29,7 +29,20 @@ export function TopNav() {
   const [activeBookings, setActiveBookings] = useState<any[]>([]);
   const [pastBookings, setPastBookings] = useState<any[]>([]);
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
-  
+
+  // Cancel / Edit Notes state
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [editingBooking, setEditingBooking] = useState<any | null>(null);
+  const [editNotes, setEditNotes] = useState("");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState({ type: "", text: "" });
+
+  // Review state
+  const [reviewingBooking, setReviewingBooking] = useState<any | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,11 +50,11 @@ export function TopNav() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchCustomerBookings = async (uid: string) => {
-    if (!uid) return;
+  // ── FIXED: uses new JWT-based route, no longer trusts a URL param ──
+  const fetchCustomerBookings = async () => {
     setIsLoadingBookings(true);
     try {
-      const res = await api.get(`/Booking/customer/${uid}/history`);
+      const res = await api.get(`/Booking/my-bookings`);
       if (res.data.success) {
         setActiveBookings(res.data.data.activeBookings || []);
         setPastBookings(res.data.data.pastBookings || []);
@@ -54,10 +67,11 @@ export function TopNav() {
   };
 
   useEffect(() => {
-    if (showProfileModal && userId && activeSubTab === "bookings") {
-      fetchCustomerBookings(userId);
+    if (showProfileModal && activeSubTab === "bookings") {
+      fetchCustomerBookings();
     }
-  }, [activeSubTab, showProfileModal, userId]);
+  }, [activeSubTab, showProfileModal]);
+
 
   // Fetch Customer Profile on Modal Open
   useEffect(() => {
@@ -72,7 +86,6 @@ export function TopNav() {
           setEmail(u.email || "");
           setPhone(u.phone || "");
           setUserId(u.id || "");
-          fetchCustomerBookings(u.id || "");
         }
       } catch (err) {
         console.error("Failed to load customer profile", err);
@@ -140,6 +153,57 @@ export function TopNav() {
     localStorage.removeItem("userEmail");
     setShowProfileModal(false);
     window.location.href = "/";
+  };
+
+  const handleCancelBooking = async (bookingId: number) => {
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    setActionLoading(true);
+    setActionMessage({ type: "", text: "" });
+    try {
+      await api.put(`/Booking/${bookingId}/cancel`);
+      setActionMessage({ type: "success", text: "Booking cancelled successfully." });
+      fetchCustomerBookings();
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.response?.data?.message || "Failed to cancel booking." });
+    } finally {
+      setActionLoading(false);
+      setCancellingId(null);
+    }
+  };
+
+  const handleUpdateNotes = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBooking) return;
+    setActionLoading(true);
+    setActionMessage({ type: "", text: "" });
+    try {
+      await api.put(`/Booking/${editingBooking.id}/update-notes`, { notes: editNotes });
+      setActionMessage({ type: "success", text: "Notes updated successfully." });
+      setEditingBooking(null);
+      fetchCustomerBookings();
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.response?.data?.message || "Failed to update notes." });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewingBooking) return;
+    setReviewLoading(true);
+    try {
+      await api.post("/Review", { bookingId: reviewingBooking.id, rating: reviewRating, comment: reviewComment });
+      setActionMessage({ type: "success", text: "Review submitted successfully!" });
+      setReviewingBooking(null);
+      setReviewComment("");
+      setReviewRating(5);
+      fetchCustomerBookings();
+    } catch (err: any) {
+      setActionMessage({ type: "error", text: err.response?.data?.message || "Failed to submit review." });
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   const cyclePalette = () => {
@@ -355,10 +419,84 @@ export function TopNav() {
             )}
 
             {activeSubTab === "bookings" && (
-              <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+              <div className="space-y-4 max-h-[420px] overflow-y-auto pr-2">
+
+                {/* Action feedback message */}
+                {actionMessage.text && (
+                  <div className={`p-3 rounded-xl text-xs font-medium border flex items-start gap-2 ${
+                    actionMessage.type === "success"
+                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-300"
+                      : "bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-300"
+                  }`}>
+                    {actionMessage.type === "success"
+                      ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      : <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />}
+                    <span>{actionMessage.text}</span>
+                  </div>
+                )}
+
+                {/* Edit Notes inline form */}
+                {editingBooking && (
+                  <form onSubmit={handleUpdateNotes} className="p-4 rounded-2xl border border-violet-500/30 bg-violet-500/5 space-y-3">
+                    <p className="text-xs font-bold text-violet-400 uppercase tracking-wider">Edit Notes for Booking #{editingBooking.id}</p>
+                    <textarea
+                      rows={3}
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      placeholder="Update your notes for the provider..."
+                      className="w-full rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs px-3 py-2 focus:outline-none focus:border-violet-500 resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={actionLoading}
+                        className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 py-2 text-xs font-bold text-white disabled:opacity-50 transition hover:brightness-110 active:scale-95">
+                        {actionLoading ? "Saving..." : "Save Notes"}
+                      </button>
+                      <button type="button" onClick={() => setEditingBooking(null)}
+                        className="px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Review inline form */}
+                {reviewingBooking && (
+                  <form onSubmit={handleSubmitReview} className="p-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 space-y-3">
+                    <p className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Review Booking #{reviewingBooking.id}</p>
+                    {/* Star rating */}
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map((star) => (
+                        <button key={star} type="button" onClick={() => setReviewRating(star)}>
+                          <Star className={`h-5 w-5 transition ${star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-600"}`} />
+                        </button>
+                      ))}
+                      <span className="ml-2 text-xs text-slate-400 self-center">{reviewRating}/5</span>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Share your experience with this provider..."
+                      className="w-full rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs px-3 py-2 focus:outline-none focus:border-cyan-500 resize-none"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={reviewLoading}
+                        className="flex-1 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 py-2 text-xs font-bold text-white disabled:opacity-50 transition hover:brightness-110 active:scale-95">
+                        {reviewLoading ? "Submitting..." : "Submit Review"}
+                      </button>
+                      <button type="button" onClick={() => setReviewingBooking(null)}
+                        className="px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {isLoadingBookings ? (
-                  <div className="py-12 flex justify-center items-center">
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold animate-pulse">Loading booking history...</span>
+                  <div className="py-12 flex justify-center items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Loading bookings...</span>
                   </div>
                 ) : activeBookings.length === 0 && pastBookings.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -368,86 +506,125 @@ export function TopNav() {
                   </div>
                 ) : (
                   <>
+                    {/* ── ACTIVE BOOKINGS ── */}
                     {activeBookings.length > 0 && (
-                      <div className="space-y-3.5">
+                      <div className="space-y-3">
                         <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Active Requests</h4>
-                        {activeBookings.map((b) => (
-                          <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 space-y-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
-                                  Specialist: {b.provider?.user?.name || "Professional"}
+                        {activeBookings.map((b) => {
+                          const isPending = b.status === "Pending" || b.status === 0;
+                          return (
+                            <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
+                                    Specialist: {b.provider?.user?.name || "Professional"}
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
+                                  isPending
+                                    ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-350"
+                                    : b.status === "Confirmed" || b.status === 1
+                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-350"
+                                    : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-350"
+                                }`}>
+                                  {b.statusLabel || (b.status === 0 ? "Pending" : b.status === 1 ? "Confirmed" : "In Progress")}
+                                </span>
+                              </div>
+
+                              <div className="text-[10px] text-slate-500 dark:text-slate-450 font-medium">
+                                Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime?.substring(0, 5)}` : "Not assigned"}
+                              </div>
+                              {b.notes && (
+                                <p className="text-[10px] italic text-slate-400 bg-slate-100 dark:bg-slate-850 p-2 rounded-lg">
+                                  Your Note: "{b.notes}"
                                 </p>
-                              </div>
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
-                                b.status === "Pending" || b.status === 0
-                                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-350"
-                                  : b.status === "Confirmed" || b.status === 1
-                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-350"
-                                  : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-350"
-                              }`}>
-                                {b.statusLabel || (b.status === 0 ? "Pending" : b.status === 1 ? "Confirmed" : "In Progress")}
-                              </span>
+                              )}
+                              {b.providerNotes && (
+                                <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
+                                  <p className="font-bold text-violet-600 dark:text-violet-455 mb-0.5">Note from Provider:</p>
+                                  <p className="italic">"{b.providerNotes}"</p>
+                                </div>
+                              )}
+
+                              {/* Action buttons — only visible when Pending */}
+                              {isPending && (
+                                <div className="flex gap-2 pt-1">
+                                  <button
+                                    disabled={actionLoading}
+                                    onClick={() => { setEditingBooking(b); setEditNotes(b.notes || ""); setReviewingBooking(null); setActionMessage({ type: "", text: "" }); }}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 text-[10px] font-bold text-violet-400 hover:bg-violet-500/20 transition active:scale-95 disabled:opacity-40"
+                                  >
+                                    <Pencil className="h-3 w-3" /> Edit Notes
+                                  </button>
+                                  <button
+                                    disabled={actionLoading}
+                                    onClick={() => handleCancelBooking(b.id)}
+                                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-[10px] font-bold text-rose-400 hover:bg-rose-500/20 transition active:scale-95 disabled:opacity-40"
+                                  >
+                                    <Trash2 className="h-3 w-3" /> Cancel
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-450 font-medium">
-                              Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime.substring(0, 5)}` : "Not assigned"}
-                            </div>
-                            {b.notes && (
-                              <p className="text-[10px] italic text-slate-400 bg-slate-100 dark:bg-slate-850 p-2 rounded-lg">
-                                Your Note: "{b.notes}"
-                              </p>
-                            )}
-                            {b.providerNotes && (
-                              <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
-                                <p className="font-bold text-violet-600 dark:text-violet-455 mb-0.5">Note from Provider:</p>
-                                <p className="italic">"{b.providerNotes}"</p>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
+                    {/* ── PAST BOOKINGS ── */}
                     {pastBookings.length > 0 && (
-                      <div className="space-y-3.5 pt-2">
+                      <div className="space-y-3 pt-2">
                         <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Past Bookings</h4>
-                        {pastBookings.map((b) => (
-                          <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-75 space-y-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
-                                  Specialist: {b.provider?.user?.name || "Professional"}
-                                </p>
+                        {pastBookings.map((b) => {
+                          const isCompleted = b.status === "Completed" || b.status === "Paid" || b.status === 3 || b.status === 4;
+                          return (
+                            <div key={b.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 opacity-80 space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-800 dark:text-white">{b.service?.name || "Maintenance Service"}</p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-450 font-medium mt-0.5">
+                                    Specialist: {b.provider?.user?.name || "Professional"}
+                                  </p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
+                                  isCompleted
+                                    ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-355"
+                                    : b.status === "Cancelled" || b.status === 5
+                                    ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-350"
+                                    : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-350"
+                                }`}>
+                                  {b.statusLabel || (b.status === 3 || b.status === 4 ? "Completed" : b.status === 5 ? "Cancelled" : "Rejected")}
+                                </span>
                               </div>
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wide ${
-                                b.status === "Completed" || b.status === 3 || b.status === 4 || b.status === "Paid"
-                                  ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-355"
-                                  : b.status === "Cancelled" || b.status === 5
-                                  ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-350"
-                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-350"
-                              }`}>
-                                {b.statusLabel || (b.status === 3 || b.status === 4 ? "Completed" : b.status === 5 ? "Cancelled" : "Rejected")}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-slate-500 dark:text-slate-455 font-medium">
-                              Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime.substring(0, 5)}` : "Not assigned"}
-                            </div>
-                            {b.providerNotes && (
-                              <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
-                                <p className="font-bold text-violet-605 dark:text-violet-455 mb-0.5">Note from Provider:</p>
-                                <p className="italic">"{b.providerNotes}"</p>
+                              <div className="text-[10px] text-slate-500 dark:text-slate-455 font-medium">
+                                Schedule: {b.slot ? `${new Date(b.slot.date).toLocaleDateString()} @ ${b.slot.startTime?.substring(0, 5)}` : "Not assigned"}
                               </div>
-                            )}
-                          </div>
-                        ))}
+                              {b.providerNotes && (
+                                <div className="p-3 rounded-xl border border-violet-500/20 bg-violet-500/5 text-[10px] text-slate-700 dark:text-slate-350">
+                                  <p className="font-bold text-violet-605 dark:text-violet-455 mb-0.5">Note from Provider:</p>
+                                  <p className="italic">"{b.providerNotes}"</p>
+                                </div>
+                              )}
+                              {/* Leave Review button for completed bookings */}
+                              {isCompleted && (
+                                <button
+                                  onClick={() => { setReviewingBooking(b); setEditingBooking(null); setReviewRating(5); setReviewComment(""); setActionMessage({ type: "", text: "" }); }}
+                                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-[10px] font-bold text-amber-400 hover:bg-amber-500/20 transition active:scale-95"
+                                >
+                                  <Star className="h-3 w-3" /> Leave a Review
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </>
                 )}
               </div>
             )}
+
 
             {activeSubTab === "password" && (
               <form onSubmit={handleChangePassword} className="space-y-4">
