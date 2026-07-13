@@ -43,3 +43,6 @@ obj/
 
 # Environment files
 appsettings.Development.json
+# Uploaded profile images
+HomeMaintenanceServiceMarketplace/wwwroot/uploads/profile-images/*
+!HomeMaintenanceServiceMarketplace/wwwroot/uploads/profile-images/.gitkeep
