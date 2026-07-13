@@ -24,10 +24,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5137","http://localhost:5000") // Add your frontend URL here
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.WithOrigins("http://localhost:5137")
+              .WithHeaders("Authorization", "Content-Type")
+              .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
     });
 });
 
@@ -131,26 +130,24 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 
 var app = builder.Build();
 
-// ===== GLOBAL EXCEPTION HANDLING MIDDLEWARE =====
-// This must be FIRST in the pipeline to catch all exceptions
+// 1.Exception Handling
 app.UseGlobalExceptionHandling();
 
-
-// Configure the HTTP request pipeline.
-app.UseCors("AllowFrontend");
-
-// ===== ACTIVATE CORS POLICY =====
+// 2. Routing  
 app.UseRouting();
 
+app.UseStaticFiles();
 
-// Add Authentication and Authorization middleware
+// 3. CORS 
+app.UseCors("AllowFrontend");
+
+// 4. Authentication / Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => "Home Maintenance API is Running!");
 app.MapControllers();
 
-// Use Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
 

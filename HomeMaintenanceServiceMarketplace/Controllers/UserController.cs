@@ -3,6 +3,7 @@ using HomeServicesPlatform.Application.DTOs.UserProfile;
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 
 namespace HomeServicesPlatform.API.Controllers
 {
@@ -16,13 +17,16 @@ namespace HomeServicesPlatform.API.Controllers
     {
         private readonly IProfileManagementService _profileManagementService;
         private readonly ICurrentUserService _currentUserService;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public UserController(
             IProfileManagementService profileManagementService,
-            ICurrentUserService currentUserService)
+            ICurrentUserService currentUserService,
+            IWebHostEnvironment webHostEnvironment)
         {
             _profileManagementService = profileManagementService;
             _currentUserService = currentUserService;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         /// <summary>
@@ -87,21 +91,185 @@ namespace HomeServicesPlatform.API.Controllers
                 });
             }
 
-            var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
 
-            if (!result)
+            try
+            {
+                var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+
+                if (result == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Profile update failed."
+                    });
+                }
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Profile updated successfully.",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
             {
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "Profile update failed."
+                    Message = ex.Message
                 });
+            }
+        }
+
+        [HttpPut("me/admin")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UpdateAdminProfile([FromBody] UpdateProfileDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return ValidationProblem(ModelState);
+            }
+
+            try
+            {
+                var result = await _profileManagementService.UpdateProfileAsync(userId, dto);
+
+                if (result == null)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Profile update failed."
+                    });
+                }
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Admin profile updated successfully.",
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("me/admin/avatar")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> UploadAdminProfileImage([FromForm] IFormFile? image)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+            }
+
+            if (image == null || image.Length == 0)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Please select an image to upload."
+                });
+            }
+
+            if (image.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Image size must not exceed 5 MB."
+                });
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unsupported image format. Use JPG, JPEG, PNG, or WEBP."
+                });
+            }
+
+            var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "profile-images");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var currentProfile = await _profileManagementService.GetProfileAsync(userId);
+            var oldImagePath = currentProfile?.ProfileImageUrl;
+            var fileName = $"{Guid.NewGuid():N}{extension}";
+            var relativePath = $"/uploads/profile-images/{fileName}";
+            var fullPath = Path.Combine(uploadsFolder, fileName);
+
+            await using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream);
+            }
+
+            var updatedProfile = await _profileManagementService.UpdateProfileImageAsync(userId, relativePath);
+
+            if (updatedProfile == null)
+            {
+                if (System.IO.File.Exists(fullPath))
+                {
+                    System.IO.File.Delete(fullPath);
+                }
+
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Profile image update failed."
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(oldImagePath) && !string.Equals(oldImagePath, relativePath, StringComparison.OrdinalIgnoreCase))
+            {
+                var oldFullPath = Path.Combine(_webHostEnvironment.WebRootPath, oldImagePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                if (System.IO.File.Exists(oldFullPath))
+                {
+                    System.IO.File.Delete(oldFullPath);
+                }
             }
 
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Message = "Profile updated successfully."
+                Message = "Profile image updated successfully.",
+                Data = updatedProfile
             });
         }
 

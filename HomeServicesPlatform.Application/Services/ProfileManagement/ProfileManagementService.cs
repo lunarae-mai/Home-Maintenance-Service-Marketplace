@@ -19,7 +19,7 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
         }
 
         // Function to view the user's profile
-        public async Task<UserProfileDto> GetProfileAsync(string userId)
+        public async Task<UserProfileDto?> GetProfileAsync(string userId)
         {
             var user = await _context.ApplicationUsers
                 .FirstOrDefaultAsync(x => x.Id == userId);
@@ -32,32 +32,72 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
                 Name = user.Name,
                 Email = user.Email,
                 Phone = user.Phone,
-                Role = user.Role
+                Role = user.Role,
+                ProfileImageUrl = user.ProfileImageUrl
             };
         }
 
 
         //Function to edit/update the user's profile
-        public async Task<bool> UpdateProfileAsync(string userId, UpdateProfileDto dto)
+        public async Task<UserProfileDto?> UpdateProfileAsync(string userId, UpdateProfileDto dto)
         {
             var user = await _context.ApplicationUsers
                 .FirstOrDefaultAsync(x => x.Id == userId);
 
-            if (user == null) return false;
+            if (user == null) return null;
+
+            if (string.IsNullOrWhiteSpace(dto.Name))
+                throw new ArgumentException("Name is required.");
+
+            if (string.IsNullOrWhiteSpace(dto.Email))
+                throw new ArgumentException("Email is required.");
 
             // Check if email is already used by another user
             var emailExists = await _context.ApplicationUsers
-                .AnyAsync(x => x.Email.ToLower() == dto.Email.ToLower()
+                .AnyAsync(x => x.Email.ToLower() == dto.Email.Trim().ToLower()
                             && x.Id != userId);
 
             if (emailExists)
                 throw new Exception("Email is already in use.");
 
-            user.Name = dto.Name;
-            user.Phone = dto.Phone;
-            user.Email = dto.Email;
+            user.Name = dto.Name.Trim();
+            user.Email = dto.Email.Trim();
 
-            return await _context.SaveChangesAsync() > 0;
+            if (!string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                user.Phone = dto.Phone.Trim();
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Phone = user.Phone,
+                Role = user.Role,
+                ProfileImageUrl = user.ProfileImageUrl
+            };
+        }
+
+        public async Task<UserProfileDto?> UpdateProfileImageAsync(string userId, string? profileImageUrl)
+        {
+            var user = await _context.ApplicationUsers.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user == null) return null;
+
+            user.ProfileImageUrl = profileImageUrl;
+            await _context.SaveChangesAsync();
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Phone = user.Phone,
+                Role = user.Role,
+                ProfileImageUrl = user.ProfileImageUrl
+            };
         }
 
 
@@ -101,7 +141,8 @@ namespace HomeServicesPlatform.Application.Services.ProfileManagement
                     Name = user.Name,
                     Email = user.Email,
                     Phone = user.Phone,
-                    Role = user.Role
+                    Role = user.Role,
+                    ProfileImageUrl = user.ProfileImageUrl
                 })
                 .ToListAsync();
         }

@@ -16,44 +16,41 @@ function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  const clearError = () => {
+    if (error) {
+      setError("");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      // In a real scenario this might be a specialized admin endpoint
-      // Using standard login with role check
       const res = await api.post("/Auth/login", { email, password });
-      if (res.data.success && res.data.data.role === "Admin") {
+      const role = res.data?.data?.role || res.data?.data?.userRole;
+
+      if (res.data?.success && role === "Admin") {
         localStorage.setItem("accessToken", res.data.data.accessToken);
         localStorage.setItem("refreshToken", res.data.data.refreshToken);
         localStorage.setItem("userEmail", email);
         localStorage.setItem("adminLoginTime", new Date().toLocaleString());
         navigate({ to: "/admin" });
-      } else {
-        setError("Access Denied: You do not have administrator privileges.");
-      }
-    } catch (err: any) {
-      console.error(err);
-
-      // Fallback for simulation purposes if backend is down
-      if (
-        (email === "admin@example.com" && password === "admin") ||
-        email === "ffathy2244@gmail.com" ||
-        password === "admin"
-      ) {
-        // Simulate successful admin login
-        localStorage.setItem("accessToken", "simulated_admin_token");
-        localStorage.setItem("userEmail", email || "admin@homeservices.com");
-        localStorage.setItem("adminLoginTime", new Date().toLocaleString());
-        navigate({ to: "/admin" });
         return;
       }
 
-      const errorMessage =
-        err.response?.data?.message || "Authentication failed. Check your credentials.";
-      setError(errorMessage);
+      setError("Invalid email or password.");
+    } catch (err: any) {
+      console.error("Login Error:", err);
+
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError("Invalid email or password.");
+      } else if (!err.response) {
+        setError("Unable to connect to the server. Please try again.");
+      } else {
+        setError(err.response?.data?.message || "Unable to connect to the server. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +98,10 @@ function AdminLogin() {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    clearError();
+                    setEmail(e.target.value);
+                  }}
                   placeholder="admin@example.com"
                   className="w-full rounded-xl border border-white/10 bg-black px-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-black focus:border-cyan-500/50 focus:bg-black focus:ring-4 focus:ring-cyan-500/10"
                 />
@@ -115,7 +115,10 @@ function AdminLogin() {
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      clearError();
+                      setPassword(e.target.value);
+                    }}
                     placeholder="••••••••"
                     className="w-full rounded-xl border border-white/10 bg-black px-4 py-3.5 pr-12 text-sm text-white placeholder:text-slate-600 outline-none transition-all duration-300 hover:bg-black focus:border-cyan-500/50 focus:bg-black focus:ring-4 focus:ring-cyan-500/10"
                   />

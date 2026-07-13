@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
+import api, { getApiData } from "@/lib/api";
 import { TopNav } from "@/components/top-nav";
 import {
   Star,
@@ -39,8 +39,9 @@ function ProviderDetail() {
       try {
         setLoading(true);
         const res = await api.get(`/Admin/providers/${id}`);
-        if (res.data.success) {
-          setProvider(res.data.data);
+        const payload = getApiData<any>(res);
+        if (payload) {
+          setProvider(payload);
         } else {
           setError("Failed to retrieve provider details.");
         }
