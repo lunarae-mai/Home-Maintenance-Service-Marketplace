@@ -23,5 +23,8 @@ namespace HomeServicesPlatform.Domain.Models
 
         // Navigation: This allows us to see all services offered by this provider
         public ICollection<ProviderService> ProviderServices { get; set; } = new List<ProviderService>();
+
+        // Navigation: This allows us to see all bookings tied to this provider
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }
