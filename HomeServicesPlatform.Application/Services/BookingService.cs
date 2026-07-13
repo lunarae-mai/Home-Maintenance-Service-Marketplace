@@ -47,6 +47,8 @@ namespace HomeServicesPlatform.Application.Services
                 ServiceId = dto.ServiceId,
                 SlotId = dto.SlotId,
                 Notes = dto.Notes,
+                ServiceDeliveryAddress = dto.ServiceDeliveryAddress,
+                ContactPhoneNumber = dto.ContactPhoneNumber,
                 Status = BookingStatus.Pending,
                 CreatedAt = DateTime.UtcNow
             };
@@ -230,6 +232,14 @@ namespace HomeServicesPlatform.Application.Services
             SlotId = b.SlotId,
             Notes = b.Notes,
             ProviderNotes = b.ProviderNotes,
+            ServiceDeliveryAddress = b.ServiceDeliveryAddress,
+            ContactPhoneNumber = b.ContactPhoneNumber,
+            PaidAmount = b.PaidAmount,
+            IsPaymentVerified = b.IsPaymentVerified,
+            PaymentStatus = b.PaymentStatus,
+            PaymentMethod = b.PaymentMethod,
+            HasCustomerReviewed = b.HasCustomerReviewed,
+            HasProviderReviewed = b.HasProviderReviewed,
             Status = b.Status,
             StatusLabel = b.Status.ToString(),
             CreatedAt = b.CreatedAt

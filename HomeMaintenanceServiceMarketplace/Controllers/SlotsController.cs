@@ -1,4 +1,4 @@
-﻿using HomeServicesPlatform.Application.DTOs.Availability;
+using HomeServicesPlatform.Application.DTOs.Availability;
 using HomeServicesPlatform.Application.DTOs.Common;
 using HomeServicesPlatform.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -118,18 +118,25 @@ namespace HomeServicesPlatform.API.Controllers
             });
         }
 
-        // GET api/slots/{providerId}?date=2026-07-01
+        // GET api/slots/{providerId:int}
         [HttpGet("{providerId:int}")]
-        public async Task<IActionResult> GetFreeSlots(int providerId, [FromQuery] DateTime date)
+        public async Task<IActionResult> GetFreeSlots(int providerId, [FromQuery] DateTime? date)
         {
             var now = DateTime.Now;
 
-            var freeSlots = await _context.TimeSlots
+            var query = _context.TimeSlots
                 .Where(s => s.ProviderId == providerId
-                         && s.Date.Date == date.Date
                          && !s.IsBooked
-                         && (s.Date.Date > now.Date || s.StartTime > now.TimeOfDay))
-                .OrderBy(s => s.StartTime)
+                         && s.Date.Date >= now.Date);
+
+            if (date.HasValue)
+            {
+                query = query.Where(s => s.Date.Date == date.Value.Date);
+            }
+
+            var freeSlots = await query
+                .OrderBy(s => s.Date)
+                .ThenBy(s => s.StartTime)
                 .Select(s => new TimeSlotDto
                 {
                     Id = s.Id,
@@ -139,11 +146,14 @@ namespace HomeServicesPlatform.API.Controllers
                 })
                 .ToListAsync();
 
+            // Filter out past times on the current day
+            var filteredSlots = freeSlots.Where(s => s.Date.Date > now.Date || s.StartTime > now.TimeOfDay).ToList();
+
             return Ok(new ApiResponse<object>
             {
                 Success = true,
                 Message = "Available time slots retrieved successfully.",
-                Data = freeSlots
+                Data = filteredSlots
             });
         }
 

@@ -198,22 +198,8 @@ namespace HomeServicesPlatform.API.Controllers
         [HttpGet("search")]
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Search([FromQuery] ProviderFilterDto filter)
         {
-            if (filter.ServiceId <= 0)
-            {
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Invalid search criteria.",
-                    Errors = new List<string>
-                    {
-                        "A valid ServiceId is required."
-                    }
-                });
-            }
-
             var result = await _providerService.SearchProvidersAsync(filter);
 
             return Ok(new ApiResponse<object>
@@ -221,6 +207,38 @@ namespace HomeServicesPlatform.API.Controllers
                 Success = true,
                 Message = "Providers retrieved successfully.",
                 Data = result
+            });
+        }
+
+        /// <summary>
+        /// Retrieves public platform statistics (number of providers and average rating).
+        /// </summary>
+        [HttpGet("stats")]
+        [AllowAnonymous]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetPublicStats()
+        {
+            var providerCount = await _context.ProviderProfiles
+                .CountAsync(p => p.Status == ProviderStatus.Approved);
+
+            double avgRating = 4.8;
+            var hasReviews = await _context.Reviews.AnyAsync(r => r.ReviewerType == "Customer");
+            if (hasReviews)
+            {
+                avgRating = await _context.Reviews
+                    .Where(r => r.ReviewerType == "Customer")
+                    .AverageAsync(r => (double)r.Rating);
+            }
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Public platform statistics retrieved successfully.",
+                Data = new
+                {
+                    ActiveProvidersCount = providerCount,
+                    AverageSatisfactionRate = Math.Round(avgRating * 20, 1) // 5 stars mapped to percentage, e.g. 4.8 -> 96.0%
+                }
             });
         }
 
@@ -243,6 +261,13 @@ namespace HomeServicesPlatform.API.Controllers
                     Experience = p.Experience,
                     AvgRating = p.AvgRating,
                     Status = p.Status.ToString(),
+                    Services = p.ProviderServices.Select(ps => new
+                    {
+                        Id = ps.ServiceId,
+                        Name = ps.Service.Name,
+                        Price = ps.BasePrice,
+                        Details = ps.PriceType
+                    }).ToList(),
                     Reviews = _context.Reviews
                         .Where(r => r.RevieweeId == p.UserId && r.ReviewerType == "Customer")
                         .Select(r => new

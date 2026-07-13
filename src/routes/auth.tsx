@@ -2,9 +2,16 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Home, Eye, EyeOff, Loader2 } from "lucide-react";
 import api from "@/lib/api";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  mode: z.enum(["login", "signup"]).optional(),
+  role: z.enum(["customer", "provider"]).optional(),
+});
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: authSearchSchema,
   head: () => ({ meta: [{ title: "Sign in — Home Services" }] }),
 });
 
@@ -12,9 +19,11 @@ type Mode = "login" | "signup";
 type Role = "customer" | "provider";
 
 function AuthPage() {
-  const [mode, setMode] = useState<Mode>("login");
-  const [role, setRole] = useState<Role>("customer");
+  const search = Route.useSearch();
+  const [mode, setMode] = useState<Mode>(search.mode || "login");
+  const [role, setRole] = useState<Role>(search.role || "customer");
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   // Controlled states for form fields
@@ -38,16 +47,19 @@ function AuthPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
+    setAuthError(null);
     resetForm();
   };
 
   const handleRoleChange = (newRole: Role) => {
     setRole(newRole);
+    setAuthError(null);
     resetForm();
   };
 
   const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setAuthError(null);
     setIsLoading(true);
 
     // Clear any old tokens before starting a new signup/registration request
@@ -63,12 +75,33 @@ function AuthPage() {
           password,
         });
         if (res.data.success) {
+          const returnedRole: string = (res.data.data.role || "").toLowerCase();
+          const isAdmin = returnedRole === "admin";
+
+          // Role-based access guard — admins bypass all checks
+          if (!isAdmin) {
+            if (role === "customer" && returnedRole !== "customer") {
+              setAuthError(
+                `This account is registered as a ${returnedRole}. Please use the ${returnedRole.charAt(0).toUpperCase() + returnedRole.slice(1)} portal to log in.`
+              );
+              setIsLoading(false);
+              return;
+            }
+            if (role === "provider" && returnedRole !== "provider") {
+              setAuthError(
+                `This account is registered as a ${returnedRole}. Please switch to the ${returnedRole.charAt(0).toUpperCase() + returnedRole.slice(1)} portal to log in.`
+              );
+              setIsLoading(false);
+              return;
+            }
+          }
+
           localStorage.setItem("accessToken", res.data.data.accessToken);
           localStorage.setItem("refreshToken", res.data.data.refreshToken);
-          const role = res.data.data.role;
-          if (role === "Admin") {
+
+          if (isAdmin || returnedRole === "admin") {
             navigate({ to: "/admin" });
-          } else if (role === "Provider") {
+          } else if (returnedRole === "provider") {
             navigate({ to: "/provider-dashboard" });
           } else {
             const savedBooking = sessionStorage.getItem("savedBookingState");
@@ -187,7 +220,7 @@ function AuthPage() {
       }
     } catch (err: any) {
       console.error("Authentication Error Details:", err);
-      let errorMsg = "Authentication failed.";
+      let errorMsg = "Authentication failed. Please check your credentials.";
       
       if (err.response?.data) {
         if (typeof err.response.data === "string") {
@@ -208,14 +241,14 @@ function AuthPage() {
         errorMsg = err.message;
       }
       
-      alert(errorMsg);
+      setAuthError(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans selection:bg-violet-500/30 flex flex-col items-center justify-center p-4 transition-colors duration-300">
+    <div className="relative min-h-screen bg-background text-foreground font-sans selection:bg-violet-500/30 flex flex-col items-center justify-center p-4 transition-colors duration-300">
       {/* Ambient background glow elements */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 dark:bg-violet-600/5 blur-[120px] animate-pulse" />
@@ -234,8 +267,8 @@ function AuthPage() {
 
       <div className="relative z-10 mx-auto w-full max-w-md">
         <div className="overflow-hidden rounded-3xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-900 shadow-xl">
-          {/* Top gradient strip */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 to-indigo-600" />
+          {/* Top gradient strip — violet to cyan matching platform theme */}
+          <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 to-cyan-500" />
           
           <div className="p-6 sm:p-8">
             {/* Mode tabs */}
@@ -246,7 +279,7 @@ function AuthPage() {
                   onClick={() => handleModeChange(m)}
                   className={`rounded-lg py-2.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
                     mode === m
-                      ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md"
+                      ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md"
                       : "text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50"
                   }`}
                 >
@@ -256,32 +289,34 @@ function AuthPage() {
             </div>
 
             {/* Role selection toggle */}
-            <div className="mb-6">
-              <label className="mb-2 block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
-                Select Access Level
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["customer", "provider"] as Role[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => handleRoleChange(r)}
-                    className={`rounded-xl border py-3 text-sm font-semibold capitalize transition-all duration-300 flex items-center justify-center cursor-pointer ${
-                      role === r
-                        ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700 shadow-md shadow-violet-500/5"
-                        : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <span
-                      className={`mr-2 inline-block h-2 w-2 rounded-full transition-all duration-300 ${
-                        role === r ? "bg-violet-500 dark:bg-violet-400 animate-pulse" : "bg-slate-300 dark:bg-slate-700"
+            {!search.role && (
+              <div className="mb-6">
+                <label className="mb-2 block text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                  Select Access Level
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["customer", "provider"] as Role[]).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => handleRoleChange(r)}
+                      className={`rounded-xl border py-3 text-sm font-semibold capitalize transition-all duration-300 flex items-center justify-center cursor-pointer ${
+                        role === r
+                          ? "bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-300 dark:border-violet-700 shadow-md shadow-violet-500/5"
+                          : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
                       }`}
-                    />
-                    {r}
-                  </button>
-                ))}
+                    >
+                      <span
+                        className={`mr-2 inline-block h-2 w-2 rounded-full transition-all duration-300 ${
+                          role === r ? "bg-violet-500 dark:bg-violet-400 animate-pulse" : "bg-slate-300 dark:bg-slate-700"
+                        }`}
+                      />
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               {mode === "signup" && (
@@ -374,13 +409,21 @@ function AuthPage() {
                 />
               )}
 
+              {/* Inline auth error banner */}
+              {authError && (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-start gap-2.5">
+                  <span className="mt-0.5 shrink-0 h-3.5 w-3.5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[8px] font-black">!</span>
+                  <span>{authError}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative mt-6 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-md transition-all duration-300 hover:scale-[1.02] disabled:opacity-70 disabled:hover:scale-100 cursor-pointer py-3.5 font-bold"
+                className="group relative mt-2 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white shadow-md shadow-violet-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-violet-500/30 disabled:opacity-70 disabled:hover:scale-100 cursor-pointer py-3.5 font-bold"
               >
                 <div className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "AUTHENTICATE ACCESS →"}
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : mode === "login" ? "Sign In →" : "Create Account →"}
               </button>
             </form>
           </div>

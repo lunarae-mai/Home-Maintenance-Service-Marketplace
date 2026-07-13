@@ -4,6 +4,7 @@ using HomeServicesPlatform.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HomeServicesPlatform.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260713100851_AddPaymentVerificationFields")]
+    partial class AddPaymentVerificationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -48,10 +51,6 @@ namespace HomeServicesPlatform.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("ProfileImageUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("RefreshToken")
                         .HasMaxLength(500)
@@ -91,12 +90,6 @@ namespace HomeServicesPlatform.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("HasCustomerReviewed")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("HasProviderReviewed")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsPaymentVerified")
                         .HasColumnType("bit");
 
@@ -107,10 +100,6 @@ namespace HomeServicesPlatform.Infrastructure.Migrations
 
                     b.Property<decimal>("PaidAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()

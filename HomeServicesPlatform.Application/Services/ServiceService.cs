@@ -39,7 +39,8 @@ namespace HomeServicesPlatform.Application.Services
                     Duration = s.Duration,
                     PriceModel = s.PriceModel,
                     ServiceCategoryId = s.ServiceCategoryId,
-                    CategoryName = s.ServiceCategory.Name
+                    CategoryName = s.ServiceCategory.Name,
+                    Description = s.ServiceCategory.Description
                 })
                 .ToListAsync();
         }
@@ -55,7 +56,8 @@ namespace HomeServicesPlatform.Application.Services
                     Duration = s.Duration,
                     PriceModel = s.PriceModel,
                     ServiceCategoryId = s.ServiceCategoryId,
-                    CategoryName = s.ServiceCategory.Name
+                    CategoryName = s.ServiceCategory.Name,
+                    Description = s.ServiceCategory.Description
                 })
                 .FirstOrDefaultAsync();
         }
@@ -88,7 +90,8 @@ namespace HomeServicesPlatform.Application.Services
             Duration = s.Duration,
             PriceModel = s.PriceModel,
             ServiceCategoryId = s.ServiceCategoryId,
-            CategoryName = s.ServiceCategory.Name
+            CategoryName = s.ServiceCategory.Name,
+            Description = s.ServiceCategory.Description
         })
         .ToListAsync();
 

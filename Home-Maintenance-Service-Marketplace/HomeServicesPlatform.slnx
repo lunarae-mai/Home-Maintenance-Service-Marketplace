@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="HomeMaintenanceServiceMarketplace/HomeServicesPlatform.API.csproj" />
-  <Project Path="HomeServicesPlatform.Application/HomeServicesPlatform.Application.csproj" />
-  <Project Path="HomeServicesPlatform.Domain/HomeServicesPlatform.Domain.csproj" />
-  <Project Path="HomeServicesPlatform.Infrastructure/HomeServicesPlatform.Infrastructure.csproj" />
-</Solution>
