@@ -34,9 +34,13 @@ namespace HomeServicesPlatform.Infrastructure.Configurations
             builder.Property(u => u.PasswordHash)
                    .IsRequired();
 
-            // Configure RefreshToken
-            builder.Property(u => u.RefreshToken)
-                   .HasMaxLength(500);
+           // Configure ProfileImageUrl
+              builder.Property(u => u.ProfileImageUrl)
+                     .HasMaxLength(500);
+
+           // Configure RefreshToken
+              builder.Property(u => u.RefreshToken)
+                     .HasMaxLength(500);
 
             // Create index on Email for faster lookups
             builder.HasIndex(u => u.Email);

@@ -9,6 +9,7 @@ namespace HomeServicesPlatform.Domain.Models
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
+        public string? ProfileImageUrl { get; set; }
 
         // This represents the user's role (e.g., Customc2er, Provider, Admin)
         public string Role { get; set; } = string.Empty;

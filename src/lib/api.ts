@@ -1,6 +1,32 @@
 import axios from "axios";
 
+export interface ApiResponseEnvelope<T = unknown> {
+  success?: boolean;
+  message?: string;
+  data?: T;
+  details?: string;
+}
+
+export function getApiData<T = unknown>(response: { data?: ApiResponseEnvelope<T> | T }): T | null {
+  if (!response?.data || typeof response.data !== "object") return null;
+
+  const payload = response.data as ApiResponseEnvelope<T> & Record<string, unknown>;
+  if (payload && ("success" in payload || "message" in payload || "details" in payload) && "data" in payload) {
+    return (payload.data as T) ?? null;
+  }
+
+  return response.data as T;
+}
+
 const API_BASE_URL = "http://localhost:5000/api";
+
+const isPublicRequest = (url?: string) => {
+  if (!url) return false;
+  const normalizedUrl = url.replace(/^https?:\/\/[^/]+/i, "").replace(/^\/api/i, "");
+  return ["/Auth/register", "/Auth/login", "/Auth/refresh-token"].some(
+    (path) => normalizedUrl === path || normalizedUrl.endsWith(path),
+  );
+};
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,10 +37,7 @@ const api = axios.create({
 
 // Interceptor for attaching the token
 api.interceptors.request.use((config) => {
-  const isPublicRoute =
-    config.url?.endsWith("/Auth/register") ||
-    config.url?.endsWith("/Auth/login") ||
-    config.url?.endsWith("/Auth/refresh-token");
+  const isPublicRoute = isPublicRequest(config.url);
 
   if (isPublicRoute) {
     console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url} | Public Route - Skipping Token`);
@@ -42,12 +65,16 @@ api.interceptors.response.use(
   async (error) => {
     console.warn(`[API Response Error] ${error.config?.method?.toUpperCase()} ${error.config?.url} | Status: ${error.response?.status}`);
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const publicRequest = isPublicRequest(originalRequest?.url);
+    const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+    const isAuthPage = pathname === "/admin_/login" || pathname === "/auth" || pathname === "/login";
+
+    if (error.response?.status === 401 && !originalRequest._retry && !publicRequest && !isAuthPage) {
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
         console.log(`[Token Refresh] Attempting to refresh token using: ${refreshToken?.substring(0, 15)}...`);
-        const res = await axios.post(`${API_BASE_URL}/Auth/refresh-token`, { refreshToken });
+        const res = await api.post("/Auth/refresh-token", { refreshToken });
         if (res.data.success) {
           console.log(`[Token Refresh] Token refreshed successfully!`);
           localStorage.setItem("accessToken", res.data.data.accessToken);

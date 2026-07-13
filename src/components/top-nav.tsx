@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, Sun, Moon, Palette, User, X, Lock, Mail, Phone, LogOut, ShieldAlert, CheckCircle2, Loader2, Star, Pencil, Trash2 } from "lucide-react";
 import { useTheme } from "@/lib/theme";
 import { useState, useEffect } from "react";
-import api from "@/lib/api";
+import api, { getApiData } from "@/lib/api";
 
 const links = [
   { to: "/" as const, label: "Home" },
@@ -14,7 +14,7 @@ export function TopNav() {
   const { theme, toggle, palette, setPalette } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("accessToken");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Modal States
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -51,6 +51,16 @@ export function TopNav() {
   const [isSaving, setIsSaving] = useState(false);
 
   // ── FIXED: uses new JWT-based route, no longer trusts a URL param ──
+  useEffect(() => {
+    const syncAuthState = () => {
+      setIsLoggedIn(typeof window !== "undefined" && !!localStorage.getItem("accessToken"));
+    };
+
+    syncAuthState();
+    window.addEventListener("storage", syncAuthState);
+    return () => window.removeEventListener("storage", syncAuthState);
+  }, []);
+
   const fetchCustomerBookings = async () => {
     setIsLoadingBookings(true);
     try {
@@ -80,8 +90,8 @@ export function TopNav() {
     const fetchProfile = async () => {
       try {
         const res = await api.get("/User/me");
-        if (res.data.success) {
-          const u = res.data.data;
+        const u = getApiData<any>(res);
+        if (u) {
           setName(u.name || "");
           setEmail(u.email || "");
           setPhone(u.phone || "");
@@ -151,6 +161,7 @@ export function TopNav() {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userEmail");
+    setIsLoggedIn(false);
     setShowProfileModal(false);
     window.location.href = "/";
   };

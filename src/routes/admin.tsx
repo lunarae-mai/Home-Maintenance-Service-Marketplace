@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { getApiData } from "@/lib/api";
 
 export const Route = createFileRoute("/admin")({
   component: AdminDashboard,
@@ -27,6 +27,7 @@ type Pending = {
   category: string;
   status: "REVIEW" | "APPROVED" | "REJECTED";
   initials: string;
+  provider: any;
 };
 
 const NAV = [
@@ -46,9 +47,16 @@ function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
+function getProfileImageUrl(profileImageUrl?: string | null) {
+  if (!profileImageUrl) return null;
+  if (/^https?:\/\//i.test(profileImageUrl)) return profileImageUrl;
+  return `http://localhost:5000${profileImageUrl}`;
+}
+
 function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [providers, setProviders] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [rows, setRows] = useState<Pending[]>([]);
   const [metrics, setMetrics] = useState<any[]>([
     { label: "Transaction Volume", value: "$0", sub: "calculating...", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-400/10" },
@@ -62,7 +70,14 @@ function AdminDashboard() {
     role: "Admin",
     joinDate: "Jan 15, 2024",
     status: "Active",
+    profileImageUrl: null,
   });
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: "", email: "" });
+  const [profileFormErrors, setProfileFormErrors] = useState({ name: "", email: "" });
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [profileStatus, setProfileStatus] = useState({ loading: false, error: "", success: "" });
   
   const [loading, setLoading] = useState(true);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -72,32 +87,43 @@ function AdminDashboard() {
     confirmPassword: "",
   });
   const [passwordStatus, setPasswordStatus] = useState({ loading: false, error: "", success: "" });
-  const [selectedProvider, setSelectedProvider] = useState<Pending | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<any | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      // Fetch Admin profile
-      const meRes = await api.get("/User/me");
-      if (meRes.data.success) {
-        const profile = meRes.data.data;
-        setAdminProfile({
-          name: profile.name,
-          email: profile.email,
-          role: profile.userRole,
-          joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Jan 15, 2024",
-          status: "Active"
-        });
+
+      const [meResult, metricsResult, providersResult, usersResult] = await Promise.allSettled([
+        api.get("/User/me"),
+        api.get("/Admin/metrics"),
+        api.get("/Admin/providers"),
+        api.get("/User"),
+      ]);
+
+      if (meResult.status === "fulfilled") {
+        const profile = getApiData<any>(meResult.value);
+        if (profile) {
+          setAdminProfile({
+            name: profile.name || "Administrator",
+            email: profile.email || "admin@homeservices.com",
+            role: profile.userRole || profile.role || "Admin",
+            joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Jan 15, 2024",
+            status: "Active",
+            profileImageUrl: profile.profileImageUrl || null,
+          });
+          setProfileForm({
+            name: profile.name || "Administrator",
+            email: profile.email || "admin@homeservices.com",
+          });
+        }
       }
 
-      // Fetch metrics
-      const metricsRes = await api.get("/Admin/metrics");
-      if (metricsRes.data.success) {
-        const md = metricsRes.data.data;
+      if (metricsResult.status === "fulfilled") {
+        const metricsData = getApiData<any>(metricsResult.value) ?? {};
         setMetrics([
           {
             label: "Transaction Volume",
-            value: `$${md.transactionVolume.toLocaleString()}`,
+            value: `$${(metricsData.transactionVolume ?? 0).toLocaleString()}`,
             sub: "Real-time sum",
             icon: DollarSign,
             color: "text-emerald-400",
@@ -105,7 +131,7 @@ function AdminDashboard() {
           },
           {
             label: "Customer Base",
-            value: md.customerBase.toString(),
+            value: (metricsData.customerBase ?? 0).toString(),
             sub: "Registered customers",
             icon: Users,
             color: "text-blue-400",
@@ -113,7 +139,7 @@ function AdminDashboard() {
           },
           {
             label: "Total Bookings",
-            value: md.totalBookings.toString(),
+            value: (metricsData.totalBookings ?? 0).toString(),
             sub: "System total",
             icon: Calendar,
             color: "text-purple-400",
@@ -121,7 +147,7 @@ function AdminDashboard() {
           },
           {
             label: "System Latency",
-            value: `${md.systemLatency}ms`,
+            value: `${metricsData.systemLatency ?? 0}ms`,
             sub: "Stable",
             icon: Zap,
             color: "text-amber-400",
@@ -130,20 +156,28 @@ function AdminDashboard() {
         ]);
       }
 
-      // Fetch providers
-      const provRes = await api.get("/Admin/providers");
-      if (provRes.data.success) {
-        setProviders(provRes.data.data);
-        const pending = provRes.data.data.filter((p: any) => p.status === "PendingApproval");
-        setRows(pending.map((p: any) => ({
-          id: p.providerId.toString(),
-          name: p.providerName,
-          category: p.offeredServices[0] || "General Repairs",
-          status: "REVIEW" as const,
-          initials: getInitials(p.providerName),
-        })));
+      if (providersResult.status === "fulfilled") {
+        const providerPayload = getApiData<any[]>(providersResult.value);
+        const providerList = Array.isArray(providerPayload) ? providerPayload : [];
+        setProviders(providerList);
+        setRows(
+          providerList
+            .filter((p: any) => (p.status || "").toString().toLowerCase() === "pendingapproval")
+            .map((p: any) => ({
+              id: p.providerId?.toString() || "",
+              name: p.providerName || "Unknown Provider",
+              category: p.offeredServices?.[0] || "General Repairs",
+              status: "REVIEW" as const,
+              initials: getInitials(p.providerName || "Unknown Provider"),
+              provider: p,
+            })),
+        );
       }
 
+      if (usersResult.status === "fulfilled") {
+        const userPayload = getApiData<any[]>(usersResult.value);
+        setUsers(Array.isArray(userPayload) ? userPayload : []);
+      }
     } catch (err) {
       console.error("Failed to load admin console data", err);
     } finally {
@@ -154,6 +188,12 @@ function AdminDashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setProfileForm({ name: adminProfile.name || "", email: adminProfile.email || "" });
+    }
+  }, [adminProfile.name, adminProfile.email, isEditingProfile]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,17 +224,132 @@ function AdminDashboard() {
       await loadData();
     } catch (err) {
       console.error("Error approving/rejecting provider", err);
+    } finally {
+      setSelectedProvider(null);
     }
-    setSelectedProvider(null);
   };
 
-  const handleUpdateStatus = async (providerId: number, status: string) => {
+  const handleUpdateStatus = async (providerId: number, statusAction: "APPROVED" | "REJECTED") => {
     try {
-      await api.put(`/Admin/providers/status?providerId=${providerId}&status=${status}`);
+      const action = statusAction === "APPROVED" ? "approve" : "reject";
+      await api.put(`/Admin/providers/${providerId}/${action}`);
       await loadData();
     } catch (err) {
       console.error("Failed to update status", err);
     }
+  };
+
+  const validateProfileForm = () => {
+    const nextErrors = { name: "", email: "" };
+
+    if (!profileForm.name.trim()) {
+      nextErrors.name = "Name is required.";
+    }
+
+    if (!profileForm.email.trim()) {
+      nextErrors.email = "Email is required.";
+    } else if (!/^\S+@\S+\.\S+$/.test(profileForm.email.trim())) {
+      nextErrors.email = "Please enter a valid email address.";
+    }
+
+    setProfileFormErrors(nextErrors);
+    return !nextErrors.name && !nextErrors.email;
+  };
+
+  const handleProfileImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileStatus({ loading: false, error: "Image must be smaller than 5 MB.", success: "" });
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setProfileStatus({ loading: false, error: "Unsupported image format. Use JPG, PNG, or WEBP.", success: "" });
+      return;
+    }
+
+    setProfileStatus({ loading: false, error: "", success: "" });
+    setProfileImageFile(file);
+    setProfileImagePreview((current) => {
+      if (current?.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateProfileForm()) {
+      return;
+    }
+
+    setProfileStatus({ loading: true, error: "", success: "" });
+
+    try {
+      let imageUrl = adminProfile.profileImageUrl || null;
+
+      if (profileImageFile) {
+        const formData = new FormData();
+        formData.append("image", profileImageFile);
+
+        const imageResponse = await api.post("/User/me/admin/avatar", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        const avatarPayload = getApiData<any>(imageResponse);
+        imageUrl = avatarPayload?.profileImageUrl || avatarPayload?.data?.profileImageUrl || imageUrl;
+      }
+
+      const profileResponse = await api.put("/User/me/admin", {
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim(),
+      });
+
+      const refreshedProfile = getApiData<any>(profileResponse);
+      const nextProfile = {
+        ...adminProfile,
+        name: refreshedProfile?.name || profileForm.name.trim(),
+        email: refreshedProfile?.email || profileForm.email.trim(),
+        role: refreshedProfile?.role || adminProfile.role,
+        joinDate: adminProfile.joinDate,
+        status: adminProfile.status,
+        profileImageUrl: refreshedProfile?.profileImageUrl || imageUrl || adminProfile.profileImageUrl,
+      };
+
+      setAdminProfile(nextProfile);
+      setProfileForm({ name: nextProfile.name, email: nextProfile.email });
+      setProfileImageFile(null);
+      if (profileImagePreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(profileImagePreview);
+      }
+      setProfileImagePreview(null);
+      localStorage.setItem("userEmail", nextProfile.email);
+      setIsEditingProfile(false);
+      setProfileStatus({ loading: false, error: "", success: "Profile updated successfully." });
+    } catch (err: any) {
+      setProfileStatus({
+        loading: false,
+        error: err.response?.data?.message || "Failed to update profile. Please try again.",
+        success: "",
+      });
+    }
+  };
+
+  const handleCancelProfileEdit = () => {
+    setProfileForm({ name: adminProfile.name || "", email: adminProfile.email || "" });
+    setProfileFormErrors({ name: "", email: "" });
+    setProfileImageFile(null);
+    if (profileImagePreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(profileImagePreview);
+    }
+    setProfileImagePreview(null);
+    setProfileStatus({ loading: false, error: "", success: "" });
+    setIsEditingProfile(false);
   };
 
   const handleLogout = () => {
@@ -262,10 +417,18 @@ function AdminDashboard() {
             className="flex items-center gap-3 mb-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition"
             onClick={() => setActiveTab("profile")}
           >
-            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0">
-              <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white">
-                {getInitials(adminProfile.name)}
-              </div>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shrink-0 overflow-hidden">
+              {getProfileImageUrl(adminProfile.profileImageUrl) ? (
+                <img
+                  src={getProfileImageUrl(adminProfile.profileImageUrl)!}
+                  alt={adminProfile.name}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white">
+                  {getInitials(adminProfile.name)}
+                </div>
+              )}
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-bold text-white truncate w-full">{adminProfile.name}</p>
@@ -350,7 +513,7 @@ function AdminDashboard() {
                         {rows.map((r) => (
                           <tr
                             key={r.id}
-                            onClick={() => setSelectedProvider(r)}
+                            onClick={() => setSelectedProvider(r.provider)}
                             className="transition-colors hover:bg-white/5 cursor-pointer group"
                           >
                             <td className="px-6 py-5">
@@ -385,60 +548,100 @@ function AdminDashboard() {
           )}
 
           {selectedProvider && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-              <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#0F0F13] shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="h-32 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 relative">
+            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 px-4 py-4 backdrop-blur-sm">
+              <div className="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0F0F13] shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="relative shrink-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500">
+                  <div className="h-32 w-full" />
                   <button
                     onClick={() => setSelectedProvider(null)}
-                    className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white hover:bg-black/40 backdrop-blur-md transition"
+                    className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white transition hover:bg-black/40 backdrop-blur-md"
                   >
                     ✕
                   </button>
                   <div className="absolute -bottom-10 left-8 h-20 w-20 rounded-2xl border-4 border-[#0F0F13] bg-gradient-to-tr from-slate-700 to-slate-900 p-0.5 shadow-xl">
-                    <div className="h-full w-full rounded-xl bg-black flex items-center justify-center text-2xl font-black text-white">
-                      {selectedProvider.initials}
+                    <div className="flex h-full w-full items-center justify-center rounded-xl bg-black text-2xl font-black text-white">
+                      {getInitials(selectedProvider.providerName || selectedProvider.name || "Provider")}
                     </div>
                   </div>
                 </div>
-                <div className="px-8 pt-14 pb-8">
-                  <div className="flex justify-between items-start mb-6">
+
+                <div className="flex-1 min-h-0 overflow-y-auto px-8 pt-14 pb-6">
+                  <div className="mb-6 flex items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-2xl font-bold text-white">{selectedProvider.name}</h2>
-                      <p className="text-cyan-400 font-medium">
-                        {selectedProvider.category} Professional
+                      <h2 className="text-2xl font-bold text-white">
+                        {selectedProvider.providerName || selectedProvider.name || "Unnamed Provider"}
+                      </h2>
+                      <p className="font-medium text-cyan-400">
+                        {Array.isArray(selectedProvider.offeredServices) && selectedProvider.offeredServices.length > 0
+                          ? selectedProvider.offeredServices[0]
+                          : "Professional Service Provider"}
                       </p>
                     </div>
-                    <StatusBadge status="PendingApproval" />
+                    <StatusBadge status={selectedProvider.status || "PendingApproval"} />
                   </div>
 
-                  <div className="space-y-4 mb-8">
+                  <div className="space-y-4">
                     <div className="rounded-xl border border-white/5 bg-white/5 p-4">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
                         Email Address
                       </p>
                       <p className="text-sm font-medium text-slate-200">
-                        {selectedProvider.name.toLowerCase().replace(/\s+/g, ".")}@example.com
+                        {selectedProvider.email || "Not provided"}
                       </p>
                     </div>
                     <div className="rounded-xl border border-white/5 bg-white/5 p-4">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+                        Phone Number
+                      </p>
+                      <p className="text-sm font-medium text-slate-200">
+                        {selectedProvider.phone || "Not provided"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+                        Bio
+                      </p>
+                      <p className="text-sm font-medium text-slate-200">
+                        {selectedProvider.bio || "No biography provided."}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
                         Experience
                       </p>
                       <p className="text-sm font-medium text-slate-200">
-                        5+ Years in {selectedProvider.category}
+                        {selectedProvider.experience || "Not provided"}
                       </p>
                     </div>
+                    <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+                      <p className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-500">
+                        Offered Services
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(selectedProvider.offeredServices) && selectedProvider.offeredServices.length > 0 ? (
+                          selectedProvider.offeredServices.map((serviceName: string, index: number) => (
+                            <span key={`${serviceName}-${index}`} className="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300">
+                              {serviceName}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm font-medium text-slate-400">No services listed.</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                </div>
 
+                <div className="sticky bottom-0 z-10 shrink-0 border-t border-white/10 bg-[#0F0F13]/95 px-8 py-4 backdrop-blur">
                   <div className="flex gap-3">
                     <button
-                      onClick={() => handleProviderApproval(selectedProvider.id, "REJECTED")}
+                      onClick={() => handleProviderApproval(selectedProvider.providerId?.toString() || selectedProvider.id?.toString() || "", "REJECTED")}
                       className="flex-1 flex justify-center items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 py-3 text-sm font-bold text-rose-400 transition hover:bg-rose-500 hover:text-white"
                     >
                       Reject Application
                     </button>
                     <button
-                      onClick={() => handleProviderApproval(selectedProvider.id, "APPROVED")}
+                      onClick={() => handleProviderApproval(selectedProvider.providerId?.toString() || selectedProvider.id?.toString() || "", "APPROVED")}
                       className="flex-1 flex justify-center items-center gap-2 rounded-xl bg-emerald-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400"
                     >
                       <CheckCircle2 className="h-4 w-4" /> Approve
@@ -462,56 +665,165 @@ function AdminDashboard() {
 
               <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl">
                 <div className="h-32 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 relative">
-                  <div className="absolute -bottom-12 left-8 h-24 w-24 rounded-2xl border-4 border-[#0F0F13] bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shadow-xl">
-                    <div className="h-full w-full rounded-xl bg-black flex items-center justify-center text-3xl font-black text-white">
-                      {getInitials(adminProfile.name)}
-                    </div>
+                  <div className="absolute -bottom-12 left-8 h-24 w-24 rounded-2xl border-4 border-[#0F0F13] bg-gradient-to-tr from-emerald-400 to-cyan-400 p-0.5 shadow-xl overflow-hidden">
+                    {getProfileImageUrl(adminProfile.profileImageUrl) || profileImagePreview ? (
+                      <img
+                        src={profileImagePreview || getProfileImageUrl(adminProfile.profileImageUrl)!}
+                        alt={adminProfile.name}
+                        className="h-full w-full rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full rounded-xl bg-black flex items-center justify-center text-3xl font-black text-white">
+                        {getInitials(adminProfile.name)}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="px-8 pt-16 pb-8">
-                  <div className="flex justify-between items-start mb-8">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
                     <div>
                       <h2 className="text-2xl font-bold text-white">{adminProfile.name}</h2>
                       <p className="text-cyan-400 font-medium">{adminProfile.role}</p>
                     </div>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-400 border border-emerald-500/20">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      System Online
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-400 border border-emerald-500/20">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        System Online
+                      </span>
+                      {!isEditingProfile ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingProfile(true)}
+                          className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                        >
+                          Edit Profile
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-                        Email Address
-                      </p>
-                      <p className="text-slate-200 font-medium">{adminProfile.email}</p>
+                  <form onSubmit={handleSaveProfile} className="space-y-6">
+                    {profileStatus.error ? (
+                      <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                        {profileStatus.error}
+                      </div>
+                    ) : null}
+                    {profileStatus.success ? (
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                        {profileStatus.success}
+                      </div>
+                    ) : null}
+
+                    {isEditingProfile ? (
+                      <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                          <div className="flex-1">
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                              Profile Picture
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              onChange={handleProfileImageChange}
+                              className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500/20 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-cyan-300 hover:file:bg-cyan-500/30"
+                            />
+                            <p className="mt-2 text-xs text-slate-500">JPG, JPEG, PNG, or WEBP up to 5 MB.</p>
+                          </div>
+                          {profileImagePreview ? (
+                            <img
+                              src={profileImagePreview}
+                              alt="Preview"
+                              className="h-24 w-24 rounded-2xl object-cover border border-white/10"
+                            />
+                          ) : getProfileImageUrl(adminProfile.profileImageUrl) ? (
+                            <img
+                              src={getProfileImageUrl(adminProfile.profileImageUrl)!}
+                              alt="Current profile"
+                              className="h-24 w-24 rounded-2xl object-cover border border-white/10"
+                            />
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                          Full Name
+                        </p>
+                        {isEditingProfile ? (
+                          <div>
+                            <input
+                              type="text"
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+                            />
+                            {profileFormErrors.name ? (
+                              <p className="mt-2 text-xs text-rose-300">{profileFormErrors.name}</p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-slate-200 font-medium">{adminProfile.name}</p>
+                        )}
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                          Email Address
+                        </p>
+                        {isEditingProfile ? (
+                          <div>
+                            <input
+                              type="email"
+                              value={profileForm.email}
+                              onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+                            />
+                            {profileFormErrors.email ? (
+                              <p className="mt-2 text-xs text-rose-300">{profileFormErrors.email}</p>
+                            ) : null}
+                          </div>
+                        ) : (
+                          <p className="text-slate-200 font-medium">{adminProfile.email}</p>
+                        )}
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                          Access Level
+                        </p>
+                        <p className="text-slate-200 font-medium flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 text-purple-400" />
+                          Full Clearance
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+                          Member Since
+                        </p>
+                        <p className="text-slate-200 font-medium">{adminProfile.joinDate}</p>
+                      </div>
                     </div>
-                    <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-                        Access Level
-                      </p>
-                      <p className="text-slate-200 font-medium flex items-center gap-2">
-                        <ShieldCheck className="h-4 w-4 text-purple-400" />
-                        Full Clearance
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-                        Member Since
-                      </p>
-                      <p className="text-slate-200 font-medium">{adminProfile.joinDate}</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/5 bg-black/20 p-5">
-                      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-                        Last Login
-                      </p>
-                      <p className="text-slate-200 font-medium">
-                        {localStorage.getItem("adminLoginTime") || "Just now"}
-                      </p>
-                    </div>
-                  </div>
+
+                    {isEditingProfile ? (
+                      <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                          type="button"
+                          onClick={handleCancelProfileEdit}
+                          className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={profileStatus.loading || !profileForm.name.trim() || !/^\S+@\S+\.\S+$/.test(profileForm.email.trim())}
+                          className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {profileStatus.loading ? "Saving..." : "Save Changes"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </form>
 
                   <div className="mt-8 pt-8 border-t border-white/10">
                     <h3 className="text-lg font-bold text-white mb-4">Security Settings</h3>
@@ -615,7 +927,7 @@ function AdminDashboard() {
                   <p className="mt-2 text-slate-400">View performance stats and manage credentials for all service providers.</p>
                 </div>
                 <div className="px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-sm font-bold w-fit">
-                  {providers.length} Total Providers
+                  {providers.length} Total Providers • {users.length} Users
                 </div>
               </div>
 
@@ -677,30 +989,21 @@ function AdminDashboard() {
                                 View Profile
                               </Link>
                               
-                              {p.status === "PendingApproval" && (
+                              {(p.status === "PendingApproval" || p.status === "Rejected") && (
                                 <button
-                                  onClick={() => handleUpdateStatus(p.providerId, "Approved")}
+                                  onClick={() => handleUpdateStatus(p.providerId, "APPROVED")}
                                   className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-emerald-400 transition border border-emerald-500/20"
                                 >
                                   Approve
                                 </button>
                               )}
 
-                              {p.status === "Approved" && (
+                              {(p.status === "PendingApproval" || p.status === "Approved") && (
                                 <button
-                                  onClick={() => handleUpdateStatus(p.providerId, "Suspended")}
+                                  onClick={() => handleUpdateStatus(p.providerId, "REJECTED")}
                                   className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-rose-400 transition border border-rose-500/20"
                                 >
-                                  Suspend
-                                </button>
-                              )}
-
-                              {(p.status === "Suspended" || p.status === "Rejected") && (
-                                <button
-                                  onClick={() => handleUpdateStatus(p.providerId, "Approved")}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 hover:text-white px-3 py-1.5 text-xs font-semibold text-cyan-400 transition border border-cyan-500/20"
-                                >
-                                  Re-Approve
+                                  Reject
                                 </button>
                               )}
                             </div>
