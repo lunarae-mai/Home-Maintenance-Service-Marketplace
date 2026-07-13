@@ -217,58 +217,92 @@ namespace HomeServicesPlatform.Application.Services
             AvgRating    = ps.Provider.AvgRating,
             BasePrice    = ps.BasePrice,
             PriceType    = ps.PriceType,
-            ServiceName  = ps.Service.Name
+            ServiceName  = ps.Service.Name,
+            TotalBookings = ps.Provider.Bookings.Count
         })
         .OrderByDescending(p => p.AvgRating)
         .ToListAsync();
 }
       
         public async Task<PagedResultDto<ProviderSearchResultDto>> SearchProvidersAsync(ProviderFilterDto filter)
-{
-    
-    // We query ProviderServices (the join table) because it links
-    // a provider to a service along with their price info
-    var query = _context.ProviderServices
-        .Where(ps => ps.ServiceId == filter.ServiceId
-                     && ps.Provider.Status == ProviderStatus.Approved);  
-
-   
-    if (filter.MinRating.HasValue)
-        query = query.Where(ps => ps.Provider.AvgRating >= filter.MinRating.Value);
-
-    if (!string.IsNullOrEmpty(filter.PriceType))
-        query = query.Where(ps => ps.PriceType == filter.PriceType);
-
-
-  
-    var totalCount = await query.CountAsync();
-
-   
-    var items = await query
-        .OrderByDescending(ps => ps.Provider.AvgRating)
-        .Skip((filter.Page - 1) * filter.PageSize)   // Skip pages before this one
-        .Take(filter.PageSize)                         // Take only this page's records
-        .Select(ps => new ProviderSearchResultDto
         {
-            ProviderId   = ps.ProviderId,
-            ProviderName = ps.Provider.User.Name,
-            Bio          = ps.Provider.Bio,
-            Experience   = ps.Provider.Experience,
-            AvgRating    = ps.Provider.AvgRating,
-            BasePrice    = ps.BasePrice,
-            PriceType    = ps.PriceType,
-            ServiceName  = ps.Service.Name
-        })
-        .ToListAsync();
+            if (filter.ServiceId <= 0)
+            {
+                var profileQuery = _context.ProviderProfiles
+                    .Where(p => p.Status == ProviderStatus.Approved);
 
-    return new PagedResultDto<ProviderSearchResultDto>
-    {
-        Items      = items,
-        TotalCount = totalCount,
-        Page       = filter.Page,
-        PageSize   = filter.PageSize
-    };
-}
+                if (filter.MinRating.HasValue)
+                {
+                    profileQuery = profileQuery.Where(p => p.AvgRating >= filter.MinRating.Value);
+                }
+
+                var totalCount = await profileQuery.CountAsync();
+
+                var items = await profileQuery
+                    .OrderByDescending(p => p.AvgRating)
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .Select(p => new ProviderSearchResultDto
+                    {
+                        ProviderId   = p.Id,
+                        ProviderName = p.User.Name,
+                        Bio          = p.Bio,
+                        Experience   = p.Experience,
+                        AvgRating    = p.AvgRating,
+                        BasePrice    = p.ProviderServices.Select(ps => ps.BasePrice).FirstOrDefault(),
+                        PriceType    = p.ProviderServices.Select(ps => ps.PriceType).FirstOrDefault() ?? "Hourly",
+                        ServiceName  = p.ProviderServices.Select(ps => ps.Service.Name).FirstOrDefault() ?? "Home Services",
+                        TotalBookings = p.Bookings.Count
+                    })
+                    .ToListAsync();
+
+                return new PagedResultDto<ProviderSearchResultDto>
+                {
+                    Items      = items,
+                    TotalCount = totalCount,
+                    Page       = filter.Page,
+                    PageSize   = filter.PageSize
+                };
+            }
+
+            var query = _context.ProviderServices
+                .Where(ps => ps.ServiceId == filter.ServiceId
+                             && ps.Provider.Status == ProviderStatus.Approved);  
+
+            if (filter.MinRating.HasValue)
+                query = query.Where(ps => ps.Provider.AvgRating >= filter.MinRating.Value);
+
+            if (!string.IsNullOrEmpty(filter.PriceType))
+                query = query.Where(ps => ps.PriceType == filter.PriceType);
+
+            var totalCountWithService = await query.CountAsync();
+
+            var itemsWithService = await query
+                .OrderByDescending(ps => ps.Provider.AvgRating)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(ps => new ProviderSearchResultDto
+                {
+                    ProviderId   = ps.ProviderId,
+                    ProviderName = ps.Provider.User.Name,
+                    Bio          = ps.Provider.Bio,
+                    Experience   = ps.Provider.Experience,
+                    AvgRating    = ps.Provider.AvgRating,
+                    BasePrice    = ps.BasePrice,
+                    PriceType    = ps.PriceType,
+                    ServiceName  = ps.Service.Name,
+                    TotalBookings = ps.Provider.Bookings.Count
+                })
+                .ToListAsync();
+
+            return new PagedResultDto<ProviderSearchResultDto>
+            {
+                Items      = itemsWithService,
+                TotalCount = totalCountWithService,
+                Page       = filter.Page,
+                PageSize   = filter.PageSize
+            };
+        }
     
     }
 }

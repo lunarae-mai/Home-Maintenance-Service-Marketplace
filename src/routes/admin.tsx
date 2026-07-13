@@ -34,8 +34,8 @@ const NAV = [
   { label: "Dashboard", id: "dashboard", icon: LayoutDashboard },
   { label: "Profile", id: "profile", icon: UserIcon },
   { label: "Providers", id: "providers", icon: Users },
-  { label: "Verification", id: "verification", icon: ShieldCheck },
-  { label: "System", id: "system", icon: Activity },
+  { label: "Customers", id: "customers", icon: Users },
+  { label: "Payments", id: "payments", icon: DollarSign },
 ];
 
 function getInitials(name: string) {
@@ -88,6 +88,63 @@ function AdminDashboard() {
   });
   const [passwordStatus, setPasswordStatus] = useState({ loading: false, error: "", success: "" });
   const [selectedProvider, setSelectedProvider] = useState<any | null>(null);
+
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [selectedCustomerDetails, setSelectedCustomerDetails] = useState<any | null>(null);
+  const [loadingCustomerDetails, setLoadingCustomerDetails] = useState(false);
+  const [paymentsData, setPaymentsData] = useState<any>({ totalRevenue: 0, averagePayment: 0, transactions: [] });
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "customers") {
+      const fetchCustomers = async () => {
+        setLoadingCustomers(true);
+        try {
+          const res = await api.get("/Admin/customers");
+          if (res.data.success) {
+            setCustomers(res.data.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch customers", err);
+        } finally {
+          setLoadingCustomers(false);
+        }
+      };
+      fetchCustomers();
+    } else if (activeTab === "payments") {
+      const fetchPayments = async () => {
+        setLoadingPayments(true);
+        try {
+          const res = await api.get("/Admin/payments");
+          if (res.data.success) {
+            setPaymentsData(res.data.data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch payments", err);
+        } finally {
+          setLoadingPayments(false);
+        }
+      };
+      fetchPayments();
+    }
+  }, [activeTab]);
+
+  const handleViewCustomerDetails = async (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setLoadingCustomerDetails(true);
+    try {
+      const res = await api.get(`/Admin/customers/${customerId}`);
+      if (res.data.success) {
+        setSelectedCustomerDetails(res.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch customer details", err);
+    } finally {
+      setLoadingCustomerDetails(false);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -982,8 +1039,8 @@ function AdminDashboard() {
                           <td className="px-6 py-5 text-right">
                             <div className="flex justify-end gap-2">
                               <Link
-                                to="/admin/providers/$id"
-                                params={{ id: p.providerId.toString() }}
+                                to="/providers/$providerId"
+                                params={{ providerId: p.providerId.toString() }}
                                 className="inline-flex items-center gap-1 rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-400 transition border border-white/10"
                               >
                                 View Profile
@@ -1017,7 +1074,272 @@ function AdminDashboard() {
             </div>
           )}
 
-          {activeTab !== "dashboard" && activeTab !== "profile" && activeTab !== "providers" && (
+          {activeTab === "customers" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-extrabold tracking-tight text-white">Customers Database</h1>
+                  <p className="mt-2 text-slate-400">Monitor and manage all clients registered on the platform.</p>
+                </div>
+              </div>
+
+              {/* Top Metric Card */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-purple-950/20 p-6 backdrop-blur-xl transition-all hover:border-purple-500/50 hover:shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 font-bold">Total Registered Customers</p>
+                    <div className="rounded-lg p-2 bg-purple-500/10">
+                      <Users className="h-4 w-4 text-purple-400" />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-3xl font-black text-white">
+                    {loadingCustomers ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-purple-400" />
+                    ) : (
+                      customers.length
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-purple-400">Active on System</p>
+                </div>
+              </div>
+
+              {/* Customers Table List */}
+              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden shadow-2xl">
+                {loadingCustomers ? (
+                  <div className="p-10 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                  </div>
+                ) : customers.length === 0 ? (
+                  <div className="p-10 text-center text-slate-500 text-sm font-semibold italic">
+                    No customers found in database.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs uppercase tracking-widest text-slate-400 bg-black/20">
+                          <th className="px-6 py-4 font-bold">Name</th>
+                          <th className="px-6 py-4 font-bold">Email</th>
+                          <th className="px-6 py-4 font-bold">Registration Date</th>
+                          <th className="px-6 py-4 font-bold">Account Status</th>
+                          <th className="px-6 py-4 text-right font-bold">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {customers.map((c) => (
+                          <tr key={c.id} className="transition-colors hover:bg-white/5">
+                            <td className="px-6 py-5 font-semibold text-slate-200">{c.name}</td>
+                            <td className="px-6 py-5 text-slate-350">{c.email}</td>
+                            <td className="px-6 py-5 text-slate-400">
+                              {new Date(c.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                                {c.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <button
+                                onClick={() => handleViewCustomerDetails(c.id)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-650 hover:from-purple-500 hover:to-indigo-550 px-3 py-1.5 text-xs font-semibold text-white transition border border-purple-500/30 cursor-pointer"
+                              >
+                                View Profile
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "payments" && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h1 className="text-4xl font-extrabold tracking-tight text-white">Financial Ledger</h1>
+                  <p className="mt-2 text-slate-400">Track and monitor all transactions processed system-wide.</p>
+                </div>
+              </div>
+
+              {/* Metric Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-950/10 p-6 backdrop-blur-xl transition-all hover:border-emerald-500/50 hover:shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 font-bold">Total Revenue Processed</p>
+                    <div className="rounded-lg p-2 bg-emerald-500/10">
+                      <DollarSign className="h-4 w-4 text-emerald-400" />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-3xl font-black text-white">
+                    {loadingPayments ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+                    ) : (
+                      `$${paymentsData.totalRevenue.toLocaleString()}`
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-emerald-400">Verified Platform Gross</p>
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-indigo-950/10 p-6 backdrop-blur-xl transition-all hover:border-indigo-500/50 hover:shadow-2xl">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 font-bold">Average Payment Amount</p>
+                    <div className="rounded-lg p-2 bg-indigo-500/10">
+                      <Activity className="h-4 w-4 text-indigo-455" />
+                    </div>
+                  </div>
+                  <p className="mt-4 text-3xl font-black text-white">
+                    {loadingPayments ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                    ) : (
+                      `$${paymentsData.averagePayment.toFixed(2)}`
+                    )}
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-indigo-400">Per Verified Transaction</p>
+                </div>
+              </div>
+
+              {/* Transactions Ledger Table */}
+              <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden shadow-2xl">
+                {loadingPayments ? (
+                  <div className="p-10 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                  </div>
+                ) : !paymentsData.transactions || paymentsData.transactions.length === 0 ? (
+                  <div className="p-10 text-center text-slate-500 text-sm font-semibold italic">
+                    No transactions recorded on the ledger.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="text-left text-xs uppercase tracking-widest text-slate-400 bg-black/20">
+                          <th className="px-6 py-4 font-bold">Transaction ID</th>
+                          <th className="px-6 py-4 font-bold">Customer Name</th>
+                          <th className="px-6 py-4 font-bold">Provider Name</th>
+                          <th className="px-6 py-4 font-bold">Service Rendered</th>
+                          <th className="px-6 py-4 font-bold">Amount Paid</th>
+                          <th className="px-6 py-4 font-bold">Method</th>
+                          <th className="px-6 py-4 font-bold">Status</th>
+                          <th className="px-6 py-4 font-bold">Timestamp</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {paymentsData.transactions.map((t: any) => (
+                          <tr key={t.paymentId} className="transition-colors hover:bg-white/5">
+                            <td className="px-6 py-5 font-mono text-xs text-slate-400">#TXN-{t.paymentId}</td>
+                            <td className="px-6 py-5 text-slate-200 font-medium">{t.customerName}</td>
+                            <td className="px-6 py-5 text-slate-200 font-medium">{t.providerName}</td>
+                            <td className="px-6 py-5 text-slate-350">{t.serviceName}</td>
+                            <td className="px-6 py-5 font-bold text-emerald-400">${t.amount}</td>
+                            <td className="px-6 py-5 text-xs">
+                              <span className="rounded bg-white/5 px-2 py-0.5 text-slate-300 font-semibold">{t.paymentMethod}</span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wider border ${
+                                t.paymentStatus === "Paid" 
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                  : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                              }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${t.paymentStatus === "Paid" ? "bg-emerald-400" : "bg-amber-400"}`}></span>
+                                {t.paymentStatus}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5 text-xs text-slate-400">
+                              {t.paidAt ? new Date(t.paidAt).toLocaleString() : "Pending Verification"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Customer Details Modal */}
+          {selectedCustomer && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-[#0F0F13] shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="h-28 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 relative">
+                  <button
+                    onClick={() => { setSelectedCustomer(null); setSelectedCustomerDetails(null); }}
+                    className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white hover:bg-black/40 backdrop-blur-md transition cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                  <div className="absolute -bottom-10 left-8 h-20 w-20 rounded-2xl border-4 border-[#0F0F13] bg-gradient-to-tr from-slate-700 to-slate-900 p-0.5 shadow-xl">
+                    <div className="h-full w-full rounded-xl bg-black flex items-center justify-center text-2xl font-black text-white">
+                      {selectedCustomerDetails ? getInitials(selectedCustomerDetails.name) : "CU"}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="px-8 pt-14 pb-8">
+                  {loadingCustomerDetails ? (
+                    <div className="flex h-48 items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                    </div>
+                  ) : selectedCustomerDetails ? (
+                    <div>
+                      <div className="mb-6">
+                        <h2 className="text-2xl font-bold text-white">{selectedCustomerDetails.name}</h2>
+                        <p className="text-cyan-400 font-medium">{selectedCustomerDetails.email}</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Phone Number</p>
+                          <p className="text-sm font-medium text-slate-200">{selectedCustomerDetails.phone || "Not Provided"}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/5 bg-white/5 p-4">
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Joined Date</p>
+                          <p className="text-sm font-medium text-slate-200">
+                            {new Date(selectedCustomerDetails.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="font-bold text-white text-base mb-3">Booking History</h3>
+                        {selectedCustomerDetails.bookings && selectedCustomerDetails.bookings.length > 0 ? (
+                          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                            {selectedCustomerDetails.bookings.map((b: any) => (
+                              <div key={b.id} className="flex justify-between items-center bg-white/5 border border-white/5 rounded-xl p-3.5">
+                                <div>
+                                  <p className="font-bold text-white text-xs">{b.serviceName}</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">Provider: {b.providerName}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                                    b.status === "Completed" || b.status === "Paid" ? "bg-emerald-500/20 text-emerald-400" : "bg-purple-500/20 text-purple-400"
+                                  }`}>
+                                    {b.status}
+                                  </span>
+                                  <p className="text-[11px] font-bold text-slate-350 mt-1">${b.paidAmount}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-500 italic">No bookings recorded for this client.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-center text-sm font-semibold">Failed to load customer profile.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== "dashboard" && activeTab !== "profile" && activeTab !== "providers" && activeTab !== "customers" && activeTab !== "payments" && (
             <div className="flex h-96 items-center justify-center rounded-3xl border border-dashed border-white/20 bg-white/5">
               <div className="text-center">
                 <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />

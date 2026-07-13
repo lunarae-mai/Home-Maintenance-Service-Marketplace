@@ -219,5 +219,119 @@ namespace HomeServicesPlatform.API.Controllers
                 }
             });
         }
+
+        [HttpGet("customers")]
+        public async Task<IActionResult> GetAllCustomers()
+        {
+            var customers = await _context.ApplicationUsers
+                .Where(u => u.Role == "Customer")
+                .Select(u => new
+                {
+                    Id = u.Id,
+                    Name = u.Name,
+                    Email = u.Email,
+                    CreatedAt = u.CreatedAt,
+                    Status = "Active"
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "All customers retrieved successfully.",
+                Data = customers
+            });
+        }
+
+        [HttpGet("customers/{customerId}")]
+        public async Task<IActionResult> GetCustomerDetails(string customerId)
+        {
+            var customer = await _context.ApplicationUsers
+                .FirstOrDefaultAsync(u => u.Id == customerId && u.Role == "Customer");
+
+            if (customer == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Customer not found."
+                });
+            }
+
+            var bookings = await _context.Bookings
+                .Where(b => b.CustomerId == customerId)
+                .Include(b => b.Provider.User)
+                .Include(b => b.Service)
+                .Select(b => new
+                {
+                    b.Id,
+                    ServiceName = b.Service.Name,
+                    ProviderName = b.Provider.User.Name,
+                    Status = b.Status.ToString(),
+                    b.PaidAmount,
+                    b.Notes,
+                    b.ServiceDeliveryAddress,
+                    b.ContactPhoneNumber
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Customer details retrieved successfully.",
+                Data = new
+                {
+                    Id = customer.Id,
+                    Name = customer.Name,
+                    Email = customer.Email,
+                    Phone = customer.Phone,
+                    CreatedAt = customer.CreatedAt,
+                    Bookings = bookings
+                }
+            });
+        }
+
+        [HttpGet("payments")]
+        public async Task<IActionResult> GetPaymentsLedger()
+        {
+            var payments = await _context.Payments
+                .Include(p => p.Booking.Customer)
+                .Include(p => p.Booking.Provider.User)
+                .Include(p => p.Booking.Service)
+                .Select(p => new
+                {
+                    PaymentId = p.Id,
+                    CustomerName = p.Booking.Customer.Name,
+                    ProviderName = p.Booking.Provider.User.Name,
+                    ServiceName = p.Booking.Service.Name,
+                    Amount = p.Amount,
+                    Commission = p.Commission,
+                    PaymentMethod = p.PaymentMethod,
+                    PaymentStatus = p.PaymentStatus,
+                    PaidAt = p.PaidAt
+                })
+                .OrderByDescending(p => p.PaidAt ?? DateTime.MinValue)
+                .ToListAsync();
+
+            var totalRevenue = await _context.Payments
+                .Where(p => p.PaymentStatus == "Paid")
+                .SumAsync(p => p.Amount);
+
+            var averagePayment = await _context.Payments
+                .Where(p => p.PaymentStatus == "Paid")
+                .AverageAsync(p => (decimal?)p.Amount) ?? 0;
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Payments ledger retrieved successfully.",
+                Data = new
+                {
+                    TotalRevenue = totalRevenue,
+                    AveragePayment = averagePayment,
+                    Transactions = payments
+                }
+            });
+        }
     }
 }

@@ -17,7 +17,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ServicesIndexRouteImport } from './routes/services.index'
 import { Route as ServicesCategoryIdRouteImport } from './routes/services.$categoryId'
-import { Route as ProvidersServiceIdRouteImport } from './routes/providers.$serviceId'
+import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
+import { Route as CustomerProfileRouteImport } from './routes/customer.profile'
 import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as ServicesServiceIdProvidersRouteImport } from './routes/services.$serviceId.providers'
 import { Route as ProvidersProviderIdBookRouteImport } from './routes/providers.$providerId.book'
@@ -63,9 +64,14 @@ const ServicesCategoryIdRoute = ServicesCategoryIdRouteImport.update({
   path: '/$categoryId',
   getParentRoute: () => ServicesRoute,
 } as any)
-const ProvidersServiceIdRoute = ProvidersServiceIdRouteImport.update({
-  id: '/providers/$serviceId',
-  path: '/providers/$serviceId',
+const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
+  id: '/providers/$providerId',
+  path: '/providers/$providerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerProfileRoute = CustomerProfileRouteImport.update({
+  id: '/customer/profile',
+  path: '/customer/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -80,9 +86,9 @@ const ServicesServiceIdProvidersRoute =
     getParentRoute: () => ServicesRoute,
   } as any)
 const ProvidersProviderIdBookRoute = ProvidersProviderIdBookRouteImport.update({
-  id: '/providers/$providerId/book',
-  path: '/providers/$providerId/book',
-  getParentRoute: () => rootRouteImport,
+  id: '/book',
+  path: '/book',
+  getParentRoute: () => ProvidersProviderIdRoute,
 } as any)
 const AdminProvidersIdRoute = AdminProvidersIdRouteImport.update({
   id: '/providers/$id',
@@ -98,7 +104,8 @@ export interface FileRoutesByFullPath {
   '/provider-dashboard': typeof ProviderDashboardRoute
   '/services': typeof ServicesRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
-  '/providers/$serviceId': typeof ProvidersServiceIdRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRouteWithChildren
   '/services/$categoryId': typeof ServicesCategoryIdRoute
   '/services/': typeof ServicesIndexRoute
   '/admin/providers/$id': typeof AdminProvidersIdRoute
@@ -112,7 +119,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/provider-dashboard': typeof ProviderDashboardRoute
   '/admin/login': typeof AdminLoginRoute
-  '/providers/$serviceId': typeof ProvidersServiceIdRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRouteWithChildren
   '/services/$categoryId': typeof ServicesCategoryIdRoute
   '/services': typeof ServicesIndexRoute
   '/admin/providers/$id': typeof AdminProvidersIdRoute
@@ -128,7 +136,8 @@ export interface FileRoutesById {
   '/provider-dashboard': typeof ProviderDashboardRoute
   '/services': typeof ServicesRouteWithChildren
   '/admin_/login': typeof AdminLoginRoute
-  '/providers/$serviceId': typeof ProvidersServiceIdRoute
+  '/customer/profile': typeof CustomerProfileRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRouteWithChildren
   '/services/$categoryId': typeof ServicesCategoryIdRoute
   '/services/': typeof ServicesIndexRoute
   '/admin/providers/$id': typeof AdminProvidersIdRoute
@@ -145,7 +154,8 @@ export interface FileRouteTypes {
     | '/provider-dashboard'
     | '/services'
     | '/admin/login'
-    | '/providers/$serviceId'
+    | '/customer/profile'
+    | '/providers/$providerId'
     | '/services/$categoryId'
     | '/services/'
     | '/admin/providers/$id'
@@ -159,7 +169,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/provider-dashboard'
     | '/admin/login'
-    | '/providers/$serviceId'
+    | '/customer/profile'
+    | '/providers/$providerId'
     | '/services/$categoryId'
     | '/services'
     | '/admin/providers/$id'
@@ -174,7 +185,8 @@ export interface FileRouteTypes {
     | '/provider-dashboard'
     | '/services'
     | '/admin_/login'
-    | '/providers/$serviceId'
+    | '/customer/profile'
+    | '/providers/$providerId'
     | '/services/$categoryId'
     | '/services/'
     | '/admin/providers/$id'
@@ -190,8 +202,8 @@ export interface RootRouteChildren {
   ProviderDashboardRoute: typeof ProviderDashboardRoute
   ServicesRoute: typeof ServicesRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
-  ProvidersServiceIdRoute: typeof ProvidersServiceIdRoute
-  ProvidersProviderIdBookRoute: typeof ProvidersProviderIdBookRoute
+  CustomerProfileRoute: typeof CustomerProfileRoute
+  ProvidersProviderIdRoute: typeof ProvidersProviderIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -252,11 +264,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicesCategoryIdRouteImport
       parentRoute: typeof ServicesRoute
     }
-    '/providers/$serviceId': {
-      id: '/providers/$serviceId'
-      path: '/providers/$serviceId'
-      fullPath: '/providers/$serviceId'
-      preLoaderRoute: typeof ProvidersServiceIdRouteImport
+    '/providers/$providerId': {
+      id: '/providers/$providerId'
+      path: '/providers/$providerId'
+      fullPath: '/providers/$providerId'
+      preLoaderRoute: typeof ProvidersProviderIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/profile': {
+      id: '/customer/profile'
+      path: '/customer/profile'
+      fullPath: '/customer/profile'
+      preLoaderRoute: typeof CustomerProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin_/login': {
@@ -275,10 +294,10 @@ declare module '@tanstack/react-router' {
     }
     '/providers/$providerId/book': {
       id: '/providers/$providerId/book'
-      path: '/providers/$providerId/book'
+      path: '/book'
       fullPath: '/providers/$providerId/book'
       preLoaderRoute: typeof ProvidersProviderIdBookRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ProvidersProviderIdRoute
     }
     '/admin/providers/$id': {
       id: '/admin/providers/$id'
@@ -316,6 +335,17 @@ const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
   ServicesRouteChildren,
 )
 
+interface ProvidersProviderIdRouteChildren {
+  ProvidersProviderIdBookRoute: typeof ProvidersProviderIdBookRoute
+}
+
+const ProvidersProviderIdRouteChildren: ProvidersProviderIdRouteChildren = {
+  ProvidersProviderIdBookRoute: ProvidersProviderIdBookRoute,
+}
+
+const ProvidersProviderIdRouteWithChildren =
+  ProvidersProviderIdRoute._addFileChildren(ProvidersProviderIdRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -324,8 +354,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProviderDashboardRoute: ProviderDashboardRoute,
   ServicesRoute: ServicesRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
-  ProvidersServiceIdRoute: ProvidersServiceIdRoute,
-  ProvidersProviderIdBookRoute: ProvidersProviderIdBookRoute,
+  CustomerProfileRoute: CustomerProfileRoute,
+  ProvidersProviderIdRoute: ProvidersProviderIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

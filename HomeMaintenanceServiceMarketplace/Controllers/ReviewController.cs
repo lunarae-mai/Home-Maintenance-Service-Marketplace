@@ -14,6 +14,7 @@ namespace HomeServicesPlatform.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/reviews")]
     [Authorize]
     public class ReviewController : ControllerBase
     {
@@ -77,31 +78,22 @@ namespace HomeServicesPlatform.API.Controllers
                     Message = "Reviews can only be submitted after the booking is Completed."
                 });
 
-            // Rule: Payment must be confirmed
-            bool paymentConfirmed = booking.Payment != null
-                                 && booking.Payment.PaymentStatus == "Paid";
-
-            if (!paymentConfirmed)
-                return BadRequest(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Payment has not been confirmed yet."
-                });
+            // Rule: Payment check bypassed/relaxed for Completed bookings
+            // (Allows customers to review once the booking status is Completed)
 
             // Rule: Only the customer or provider involved in this booking can review
             if (booking.CustomerId != userId && booking.Provider.UserId != userId)
                 return Forbid();
 
-            // Rule: No duplicate reviews — max 1 per party per booking
-            var existingReview = await _context.Reviews
-                .AnyAsync(r => r.BookingId == dto.BookingId && r.ReviewerId == userId);
-
-            if (existingReview)
+            // Rule: Payment must be Paid & Verified before reviews are unlocked
+            if (!booking.IsPaymentVerified)
+            {
                 return BadRequest(new ApiResponse<object>
                 {
                     Success = false,
-                    Message = "You have already reviewed this booking."
+                    Message = "Reviews are locked until payment is verified by the provider."
                 });
+            }
 
             // Determine who is reviewing whom
             string revieweeId;
@@ -109,13 +101,31 @@ namespace HomeServicesPlatform.API.Controllers
 
             if (booking.CustomerId == userId)
             {
+                if (booking.HasCustomerReviewed)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "You have already reviewed this booking."
+                    });
+                }
                 revieweeId = booking.Provider.UserId;
                 reviewerType = "Customer";
+                booking.HasCustomerReviewed = true;
             }
             else
             {
+                if (booking.HasProviderReviewed)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "You have already reviewed this booking."
+                    });
+                }
                 revieweeId = booking.CustomerId;
                 reviewerType = "Provider";
+                booking.HasProviderReviewed = true;
             }
 
             var review = new Review
@@ -141,6 +151,95 @@ namespace HomeServicesPlatform.API.Controllers
             {
                 Success = true,
                 Message = "Review submitted successfully."
+            });
+        }
+
+        /// <summary>
+        /// Creates a review/note for a Customer left by a Provider.
+        /// </summary>
+        /// <param name="dto">The review details.</param>
+        /// <returns>A confirmation of submission.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpPost("Customer")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> CreateCustomerReview([FromBody] CreateReviewDto dto)
+        {
+            var userId = _currentUserService.UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+
+            var booking = await _context.Bookings
+                .Include(b => b.Customer)
+                .Include(b => b.Provider)
+                .FirstOrDefaultAsync(b => b.Id == dto.BookingId);
+
+            if (booking == null)
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Booking not found."
+                });
+
+            // Ensure the calling provider is actually assigned to this booking
+            if (booking.Provider.UserId != userId)
+                return Forbid();
+
+            // Rule: Booking must be finished (Completed or Paid status)
+            bool workIsDone = booking.Status == BookingStatus.Completed
+                           || booking.Status == BookingStatus.Paid;
+
+            if (!workIsDone)
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Reviews can only be submitted after the booking is Completed."
+                });
+
+            // Rule: Payment must be Paid & Verified before reviews are unlocked
+            if (!booking.IsPaymentVerified)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Reviews are locked until payment is verified by the provider."
+                });
+            }
+
+            // Rule: No duplicate reviews — max 1 from provider for customer per booking
+            if (booking.HasProviderReviewed)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "You have already reviewed this customer for this booking."
+                });
+            }
+
+            var review = new Review
+            {
+                BookingId = dto.BookingId,
+                ReviewerId = userId,
+                RevieweeId = booking.CustomerId,
+                ReviewerType = "Provider",
+                Rating = dto.Rating,
+                Comment = dto.Comment
+            };
+
+            booking.HasProviderReviewed = true;
+            _context.Reviews.Add(review);
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Customer review submitted successfully."
             });
         }
 
@@ -223,16 +322,8 @@ namespace HomeServicesPlatform.API.Controllers
                     Message = "The booking has not been completed yet."
                 });
 
-            // Check 2: Payment must be confirmed
-            bool paymentConfirmed = booking.Payment != null
-                                 && booking.Payment.PaymentStatus == "Paid";
-
-            if (!paymentConfirmed)
-                return Ok(new ApiResponse<object>
-                {
-                    Success = false,
-                    Message = "Payment has not been confirmed yet."
-                });
+            // Check 2: Payment check relaxed for Completed bookings
+            // (Allows canReview once status is Completed)
 
             // Check 3: Has this user already reviewed?
             var hasReviewed = await _context.Reviews
@@ -300,6 +391,55 @@ namespace HomeServicesPlatform.API.Controllers
                 {
                     providerName = provider.User.Name,
                     averageRating = provider.AvgRating,
+                    totalReviews = reviews.Count,
+                    reviews
+                }
+            });
+        }
+
+        /// <summary>
+        /// Retrieves all reviews and rating information left by providers for a specific customer.
+        /// </summary>
+        /// <param name="customerId">The unique identifier of the customer.</param>
+        /// <returns>The customer's average rating and provider reviews/notes.</returns>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpGet("customer/{customerId}")]
+        public async Task<IActionResult> GetCustomerReviews(string customerId)
+        {
+            var customer = await _context.ApplicationUsers
+                .FirstOrDefaultAsync(u => u.Id == customerId);
+
+            if (customer == null)
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Customer not found."
+                });
+
+            var reviews = await _context.Reviews
+                .Where(r => r.RevieweeId == customerId && r.ReviewerType == "Provider")
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Rating,
+                    r.Comment,
+                    ReviewerName = r.Reviewer.Name,
+                    r.CreatedAt
+                })
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            var avgRating = reviews.Any() ? (decimal)reviews.Average(r => r.Rating) : 0;
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Customer reviews retrieved successfully.",
+                Data = new
+                {
+                    customerName = customer.Name,
+                    averageRating = avgRating,
                     totalReviews = reviews.Count,
                     reviews
                 }

@@ -10,5 +10,6 @@ namespace HomeServicesPlatform.Application.DTOs.Provider
         public decimal BasePrice { get; set; }
         public string PriceType { get; set; } = string.Empty;
         public string ServiceName { get; set; } = string.Empty;
+        public int TotalBookings { get; set; }
     }
 }

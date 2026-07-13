@@ -63,6 +63,35 @@ namespace HomeServicesPlatform.API.Controllers
         }
 
         /// <summary>
+        /// Finalizes a checkout booking with address and phone coordinates.
+        /// </summary>
+        /// <param name="dto">The finalized booking information.</param>
+        /// <returns>A confirmation of finalization.</returns>
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [HttpPost("finalize")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> FinalizeBooking([FromBody] CreateBookingDto dto)
+        {
+            var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerId))
+                return Unauthorized(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Unauthorized."
+                });
+
+            var result = await _bookingService.CreateBookingAsync(customerId, dto);
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Booking finalized successfully.",
+                Data = result
+            });
+        }
+
+        /// <summary>
         /// Retrieves the full booking history for the authenticated customer (active and past).
         /// </summary>
         /// <returns>Active and past bookings for the logged-in customer.</returns>
@@ -300,6 +329,63 @@ namespace HomeServicesPlatform.API.Controllers
             });
         }
 
+        /// <summary>
+        /// Submits verification details for a completed booking cash payment.
+        /// </summary>
+        [HttpPost("{bookingId}/submit-payment")]
+        [Authorize(Roles = "Customer")]
+        public async Task<IActionResult> SubmitPayment(int bookingId, [FromBody] SubmitPaymentDto dto)
+        {
+            var customerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(customerId))
+                return Unauthorized(new ApiResponse<object> { Success = false, Message = "Unauthorized." });
+
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId && b.CustomerId == customerId);
+            if (booking == null)
+                return NotFound(new ApiResponse<object> { Success = false, Message = "Booking not found." });
+
+            booking.PaidAmount = dto.AmountPaid;
+            booking.PaymentMethod = string.IsNullOrEmpty(dto.PaymentMethod) ? "Cash" : dto.PaymentMethod;
+            booking.PaymentStatus = "Submitted";
+            booking.IsPaymentVerified = false;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Payment details submitted successfully for verification."
+            });
+        }
+
+        /// <summary>
+        /// Confirms receipt of payment by the provider, marking payment verified and updating status.
+        /// </summary>
+        [HttpPost("{bookingId}/confirm-payment")]
+        [Authorize(Roles = "Provider")]
+        public async Task<IActionResult> ConfirmPayment(int bookingId)
+        {
+            var providerId = await GetCurrentProviderIdAsync();
+            if (providerId == null)
+                return NotFound(new ApiResponse<object> { Success = false, Message = "Provider profile not found." });
+
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId && b.ProviderId == providerId.Value);
+            if (booking == null)
+                return NotFound(new ApiResponse<object> { Success = false, Message = "Booking not found." });
+
+            booking.IsPaymentVerified = true;
+            booking.PaymentStatus = "Paid";
+            booking.Status = BookingStatus.Paid;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Message = "Payment confirmed successfully by the provider."
+            });
+        }
+
         // ─────────────────────────────────────────────
         // PRIVATE HELPERS
         // ─────────────────────────────────────────────
@@ -328,5 +414,12 @@ namespace HomeServicesPlatform.API.Controllers
     public class ConfirmBookingRequestDto
     {
         public string ProviderNotes { get; set; } = string.Empty;
+    }
+
+    public class SubmitPaymentDto
+    {
+        public decimal AmountPaid { get; set; }
+        public string Reference { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = "Cash";
     }
 }

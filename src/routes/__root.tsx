@@ -108,6 +108,18 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('hs-theme') || 'dark';
+                document.documentElement.classList.add(theme);
+                const palette = localStorage.getItem('hs-palette') || 'purple';
+                document.documentElement.classList.add('theme-' + palette);
+              } catch (e) {}
+            `,
+          }}
+        />
       </head>
       <body>
         {children}

@@ -19,14 +19,20 @@ using HomeServicesPlatform.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== CONFIGURING CORS POLICY =====
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5137")
-              .WithHeaders("Authorization", "Content-Type")
-              .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
+        policy
+            .WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:5137",
+                "http://localhost:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5137")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 

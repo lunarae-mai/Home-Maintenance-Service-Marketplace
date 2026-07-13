@@ -14,6 +14,56 @@ export const Route = createFileRoute("/services/")({
   head: () => ({ meta: [{ title: "Marketplace — Home Services" }] }),
 });
 
+function getServiceFallbackDescription(serviceName: string) {
+  const name = serviceName.toLowerCase();
+
+  if (name.includes("carpet")) {
+    return "Refresh carpets with deep cleaning that lifts dirt, stains, and odors.";
+  }
+
+  if (name.includes("ceiling") || name.includes("fan")) {
+    return "Install and maintain ceiling fans with safe, efficient workmanship.";
+  }
+
+  if (name.includes("plumb") || name.includes("drain") || name.includes("water")) {
+    return "Handle leaks, repairs, and installations with dependable plumbing expertise.";
+  }
+
+  if (name.includes("elect") || name.includes("wiring")) {
+    return "Provide safe electrical repairs and installations for your home.";
+  }
+
+  if (name.includes("paint")) {
+    return "Refresh interiors or exteriors with precise, clean painting services.";
+  }
+
+  if (name.includes("clean")) {
+    return "Keep your space spotless with reliable cleaning and upkeep.";
+  }
+
+  if (name.includes("repair") || name.includes("fix")) {
+    return "Restore fixtures and equipment with skilled, dependable repair work.";
+  }
+
+  if (name.includes("install") || name.includes("mount")) {
+    return "Handle installations with professional care and attention to detail.";
+  }
+
+  if (name.includes("handyman")) {
+    return "Tackle everyday maintenance jobs quickly and professionally.";
+  }
+
+  if (name.includes("ac") || name.includes("hvac") || name.includes("cool")) {
+    return "Keep your home comfortable with efficient climate-control maintenance and repair.";
+  }
+
+  if (name.includes("pest")) {
+    return "Protect your space with safe, effective pest-control solutions.";
+  }
+
+  return `${serviceName} delivered by trusted local experts with reliable, high-quality workmanship.`;
+}
+
 function Marketplace() {
   const search = Route.useSearch();
   console.log("URL SEARCH PARAM:", search);
@@ -44,7 +94,7 @@ function Marketplace() {
               id: s.id.toString(),
               category: s.categoryName,
               name: s.name,
-              description: s.description || "Professional service.",
+              description: s.description?.trim() || "",
               icon: Wrench,
             })),
           );
@@ -148,7 +198,7 @@ function Marketplace() {
     setSelected((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <TopNav />
 
       <main className="mx-auto max-w-7xl px-6 py-10">
@@ -245,6 +295,7 @@ function Marketplace() {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {filtered.map((s) => {
                   const Icon = s.icon;
+                  const descriptionText = s.description?.trim() || getServiceFallbackDescription(s.name);
                   return (
                     <div
                       key={s.id}
@@ -254,18 +305,20 @@ function Marketplace() {
                         <span className="rounded-md bg-violet-100 dark:bg-violet-900/40 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-violet-700 dark:text-violet-300">
                           {s.category}
                         </span>
-                        <div className="grid h-10 w-10 place-items-center rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 transition-colors duration-300 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-indigo-600 group-hover:text-white">
+                        <div className="grid h-10 w-10 place-items-center rounded-lg bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 transition-colors duration-300 group-hover:bg-gradient-to-r group-hover:from-violet-600 group-hover:to-cyan-500 group-hover:text-white">
                           <Icon className="h-5 w-5" />
                         </div>
                       </div>
                       <h3 className="mt-4 text-lg font-bold tracking-tight text-slate-800 dark:text-white">{s.name}</h3>
-                      <p className="mt-1.5 flex-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                        {s.description}
-                      </p>
+                      {descriptionText ? (
+                        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-3">
+                          {descriptionText}
+                        </p>
+                      ) : null}
                       <Link
                         to="/services/$serviceId/providers"
                         params={{ serviceId: s.id.toString() }}
-                        className="mt-5 flex items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 py-2.5 text-sm font-semibold shadow hover:scale-[1.02] active:scale-95 transition-all duration-300"
+                        className="mt-5 flex items-center justify-center rounded-lg bg-gradient-to-r from-violet-600 to-cyan-500 text-white hover:from-violet-500 hover:to-cyan-400 py-2.5 text-sm font-semibold shadow hover:scale-[1.02] active:scale-95 transition-all duration-300"
                       >
                         View Providers →
                       </Link>

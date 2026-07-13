@@ -8,6 +8,56 @@ export const Route = createFileRoute("/services/$categoryId")({
   component: CategoryDetails,
 });
 
+function getServiceFallbackDescription(serviceName: string) {
+  const name = serviceName.toLowerCase();
+
+  if (name.includes("carpet")) {
+    return "Refresh carpets with deep cleaning that lifts dirt, stains, and odors.";
+  }
+
+  if (name.includes("ceiling") || name.includes("fan")) {
+    return "Install and maintain ceiling fans with safe, efficient workmanship.";
+  }
+
+  if (name.includes("plumb") || name.includes("drain") || name.includes("water")) {
+    return "Handle leaks, repairs, and installations with dependable plumbing expertise.";
+  }
+
+  if (name.includes("elect") || name.includes("wiring")) {
+    return "Provide safe electrical repairs and installations for your home.";
+  }
+
+  if (name.includes("paint")) {
+    return "Refresh interiors or exteriors with precise, clean painting services.";
+  }
+
+  if (name.includes("clean")) {
+    return "Keep your space spotless with reliable cleaning and upkeep.";
+  }
+
+  if (name.includes("repair") || name.includes("fix")) {
+    return "Restore fixtures and equipment with skilled, dependable repair work.";
+  }
+
+  if (name.includes("install") || name.includes("mount")) {
+    return "Handle installations with professional care and attention to detail.";
+  }
+
+  if (name.includes("handyman")) {
+    return "Tackle everyday maintenance jobs quickly and professionally.";
+  }
+
+  if (name.includes("ac") || name.includes("hvac") || name.includes("cool")) {
+    return "Keep your home comfortable with efficient climate-control maintenance and repair.";
+  }
+
+  if (name.includes("pest")) {
+    return "Protect your space with safe, effective pest-control solutions.";
+  }
+
+  return `${serviceName} delivered by trusted local experts with reliable, high-quality workmanship.`;
+}
+
 function CategoryDetails() {
   const { categoryId } = Route.useParams();
   const [subServices, setSubServices] = useState<any[]>([]);
@@ -101,6 +151,8 @@ function CategoryDetails() {
           <div className="space-y-12">
             {subServices.map((service) => {
               const providers = providersMap[service.id] || [];
+              const descriptionText =
+                service.description?.trim() || getServiceFallbackDescription(service.name);
 
               // We'll show the service priceModel/duration if available, otherwise fallback
               const basePriceLabel = service.priceModel === "Hourly" ? "Hourly Rate" : "Base Price";
@@ -113,10 +165,9 @@ function CategoryDetails() {
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
                     <div>
                       <h2 className="text-2xl font-bold text-foreground">{service.name}</h2>
-                      <p className="mt-2 text-muted-foreground">
-                        {service.description ||
-                          "Professional service delivered by certified experts."}
-                      </p>
+                      {descriptionText ? (
+                        <p className="mt-2 text-muted-foreground">{descriptionText}</p>
+                      ) : null}
                     </div>
                     <div className="flex gap-4 shrink-0">
                       <div className="flex flex-col items-end rounded-xl bg-primary/10 px-4 py-3 text-primary">
